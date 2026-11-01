@@ -26,8 +26,9 @@ Serve Node: `node --test "tests/*.test.mjs"`. Prova `sito/logica.js`, senza brow
 - rotte nascoste invisibili, frequenze vuote e mai zero;
 - filtri, testi, linee curve e file dati sbagliato;
 - togliere una tappa: ultima, in mezzo con e senza volo diretto, partenza, A > B > A;
-- chiudere il giro: distanze, ritorni dentro e fuori dal raggio, limite esatto, rotte nascoste, riepilogo e km totali;
-- il vero `dati/dove_volo.json`: lettura, ricerche con le parole di una persona (Bergamo, Malpensa, Londra) e l'esempio TRN > OTP > TBS che si chiude.
+- chiudere il giro: distanze, ritorni dentro e fuori dal raggio, limite esatto, rotte nascoste, riepilogo, km e tempi totali;
+- changelog letto dal file vero, impostazioni salvate, rovinate o senza memoria;
+- il vero `dati/dove_volo.json`: lettura, ricerche con le parole di una persona (Bergamo, Malpensa, Londra), l'esempio TRN > OTP > TBS che si chiude, e nessun nome doppio tra aeroporti.
 
 ## Cosa i test automatici non coprono
 

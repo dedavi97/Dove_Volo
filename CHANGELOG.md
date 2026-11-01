@@ -2,6 +2,16 @@
 
 Cosa cambia a ogni versione, in parole semplici.
 
+## 0.5.0 · 1° novembre 2026
+
+Più ordine, e nuove schede.
+
+- Il rientro si può annullare: "Annulla il rientro" compare sia mentre scegli il ritorno sia nel riepilogo.
+- Il riepilogo mostra chilometri e tempo in volo per ogni tratta e i totali. I totali sono anche in alto, accanto alle tappe.
+- Le città con più aeroporti mostrano quale: Milano Malpensa, Milano Linate, Londra Heathrow, Parigi Orly.
+- La barra in alto è più compatta: da due tappe in poi la catena prende il posto del campo di ricerca e la mappa ha più spazio.
+- Nuove schede: Opzioni (raggio predefinito, rotte stagionali), Aiuto e Info (fonti, licenze e novità).
+
 ## 0.4.0 · 1° novembre 2026
 
 Il giro ora si chiude.

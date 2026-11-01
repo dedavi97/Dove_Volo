@@ -2,7 +2,7 @@
 
 Un sito per costruire viaggi in più tappe con **voli diretti in Europa**: parti da A, voli a B, poi a C, poi torni ad A o a un aeroporto vicino. È il fratello di [Dove_Arrivo](https://github.com/dedavi97/Dove_Arrivo), che fa lo stesso con i treni regionali italiani.
 
-**Stato:** versione 0.4.0, in costruzione. Si sceglie una partenza, si aggiungono tappe e si chiude il giro con un ritorno alla partenza o vicino. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
+**Stato:** versione 0.5.0, in costruzione. Si sceglie una partenza, si aggiungono tappe e si chiude il giro con un ritorno alla partenza o vicino, con chilometri e tempi nel riepilogo. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
 
 ## Come funziona
 
@@ -19,7 +19,7 @@ Serve Python 3, senza installare altro. Avvia `Apri_Sito.bat`: il sito si apre n
 | Rotte, voli a settimana, giorni | File giornalieri di [omaxim/airline-route-data](https://github.com/omaxim/airline-route-data), ricavati da flightsfrom.com | Nessuna licenza indicata |
 | Aeroporti | [OurAirports](https://ourairports.com/data/) | Pubblico dominio |
 | Sfondo della mappa | [Natural Earth](https://www.naturalearthdata.com/), disegnato con [Leaflet](https://leafletjs.com/) | Pubblico dominio; Leaflet BSD-2 |
-| Rotte stagionali e annunciate (dalla 0.5.0) | Pagine degli aeroporti su [Wikipedia](https://en.wikipedia.org/) | CC BY-SA |
+| Rotte stagionali e annunciate (dalla 0.6.0) | Pagine degli aeroporti su [Wikipedia](https://en.wikipedia.org/) | CC BY-SA |
 
 Dove_Volo è un progetto personale, aperto e gratuito. Scarica solo file pubblici e usa l'API ufficiale di Wikipedia.
 

@@ -24,9 +24,30 @@ const NOMI_ITALIANI = {
   "Zakinthos": "Zante", "Zurich": "Zurigo",
 };
 
-// Aeroporti che i dati mettono sotto una citta' grande, ma che tutti chiamano col loro nome.
-// Cercando la citta' grande si trovano lo stesso.
-const NOMI_PROPRI = { BGY: "Bergamo", TSF: "Treviso", CRL: "Charleroi", BVA: "Beauvais", NRN: "Weeze" };
+// Citta' con piu' aeroporti: si mostra quale. Un test sui dati veri controlla che nessun nome resti doppio.
+// Cercando la citta' si trovano tutti, cercando il nome dell'aeroporto si trova quello.
+const NOMI_AEROPORTI = {
+  MXP: "Milano Malpensa", LIN: "Milano Linate", BGY: "Milano Bergamo",
+  FCO: "Roma Fiumicino", CIA: "Roma Ciampino",
+  VCE: "Venezia Marco Polo", TSF: "Venezia Treviso",
+  LHR: "Londra Heathrow", LGW: "Londra Gatwick", STN: "Londra Stansted", LTN: "Londra Luton", LCY: "Londra City",
+  CDG: "Parigi Charles de Gaulle", ORY: "Parigi Orly", BVA: "Parigi Beauvais",
+  IST: "Istanbul Arnavutköy", SAW: "Istanbul Sabiha Gökçen",
+  BRU: "Bruxelles Zaventem", CRL: "Bruxelles Charleroi",
+  NRN: "Düsseldorf Weeze",
+  ARN: "Stoccolma Arlanda", BMA: "Stoccolma Bromma", NYO: "Stoccolma Skavsta", VST: "Stoccolma Västerås",
+  CPH: "Copenaghen Kastrup", RKE: "Copenaghen Roskilde",
+  TFN: "Tenerife Nord", TFS: "Tenerife Sud",
+  OTP: "Bucarest Otopeni", BBU: "Bucarest Băneasa",
+  WAW: "Varsavia Chopin", RDO: "Varsavia Radom",
+  SVO: "Mosca Šeremet'evo", DME: "Mosca Domodedovo", VKO: "Mosca Vnukovo",
+  LBC: "Amburgo Lubecca",
+  PIK: "Glasgow Prestwick",
+  BFS: "Belfast International", BHD: "Belfast City",
+  KEF: "Reykjavik Keflavik", RKV: "Reykjavik Città",
+  LSI: "Shetland Sumburgh", LWK: "Shetland Tingwall",
+  BES: "Brest (Francia)", BQT: "Brest (Bielorussia)", // due citta' diverse con lo stesso nome
+};
 
 const GIORNI_ESTESI = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
 
@@ -39,7 +60,7 @@ export function normalizza(testo) {
 }
 
 export function nomeCitta(aeroporto, codice) {
-  return NOMI_PROPRI[codice] || NOMI_ITALIANI[aeroporto.citta] || aeroporto.citta || aeroporto.nome;
+  return NOMI_AEROPORTI[codice] || NOMI_ITALIANI[aeroporto.citta] || aeroporto.citta || aeroporto.nome;
 }
 
 export function controllaDati(dati) {
@@ -192,6 +213,8 @@ export function riepilogoGiro(dati, tappe) {
   return {
     tratte,
     kmTotali: tratte.reduce((totale, t) => totale + (t.meta?.km || 0), 0),
+    minutiTotali: tratte.reduce((totale, t) => totale + (t.meta?.durata || 0), 0),
+    durataCompleta: tratte.every((t) => t.meta?.durata),
     distanzaFinale: ultima === tappe[0] ? 0 : distanzaKm(dati.aeroporti[tappe[0]], dati.aeroporti[ultima]),
   };
 }
@@ -206,6 +229,52 @@ export function testoVicino(distanza, citta) {
 
 export function testoTratte(numero) {
   return numero === 1 ? "1 tratta" : `${numero} tratte`;
+}
+
+// "5934 km · 11 h 20 min in volo". Se manca la durata di una tratta, il tempo e' un minimo.
+export function testoTotale({ kmTotali, minutiTotali, durataCompleta }) {
+  const parti = [testoKm(kmTotali)];
+  if (minutiTotali) parti.push(`${durataCompleta ? "" : "almeno "}${testoDurata(minutiTotali)} in volo`);
+  return parti.join(" · ");
+}
+
+// Il changelog e' un solo file: la pagina Informazioni legge lo stesso CHANGELOG.md del repo.
+export function leggiChangelog(testo) {
+  const versioni = [];
+  for (const riga of testo.split(/\r?\n/)) {
+    if (riga.startsWith("## ")) {
+      versioni.push({ titolo: riga.slice(3).trim(), voci: [] });
+    } else if (versioni.length && riga.trim()) {
+      versioni[versioni.length - 1].voci.push(riga.replace(/^- /, "").replaceAll("`", "").trim());
+    }
+  }
+  return versioni;
+}
+
+export const IMPOSTAZIONI_INIZIALI = { raggio: 150, stagionali: true };
+const CHIAVE_IMPOSTAZIONI = "dove_volo_impostazioni";
+
+// La memoria del browser puo' mancare o dare errore: allora valgono i valori iniziali.
+export function leggiImpostazioni(memoria) {
+  try {
+    const salvate = JSON.parse(memoria.getItem(CHIAVE_IMPOSTAZIONI));
+    const raggio = Number(salvate.raggio);
+    return {
+      raggio: raggio >= 0 && raggio <= 400 ? Math.round(raggio / 10) * 10 : IMPOSTAZIONI_INIZIALI.raggio,
+      stagionali: typeof salvate.stagionali === "boolean" ? salvate.stagionali : IMPOSTAZIONI_INIZIALI.stagionali,
+    };
+  } catch {
+    return { ...IMPOSTAZIONI_INIZIALI };
+  }
+}
+
+export function salvaImpostazioni(memoria, impostazioni) {
+  try {
+    memoria.setItem(CHIAVE_IMPOSTAZIONI, JSON.stringify(impostazioni));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function filtraMete(mete, filtri) {

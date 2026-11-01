@@ -80,11 +80,11 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 8. **Niente elicotteri:** fuori tutte le rotte da e per gli eliporti, Ceuta compresa, vedi sotto.
 9. **Compagnie senza nome** (ATV, B0, DCT, FNA, GPX, HBR, HTY, LID, LTR, TOM): per ora si mostra il codice.
 
-### Come si applicano prima della 0.5.0
+### Come si applicano prima della 0.6.0
 
-Wikipedia entra nello scanner solo con la 0.5.0 (confermato da Davide). Quindi:
-- la 0.1.0 prova la tolleranza con un file **senza frequenze**; il file con OurAirports + Wikipedia si prova dalla 0.5.0;
-- fino alla 0.5.0 una rotta è `stagionale` solo se vista negli ultimi 12 mesi, e lo stato `annunciata` non esiste ancora.
+Wikipedia entra nello scanner solo con la 0.6.0 (confermato da Davide). Quindi:
+- la 0.1.0 prova la tolleranza con un file **senza frequenze**; il file con OurAirports + Wikipedia si prova dalla 0.6.0;
+- fino alla 0.6.0 una rotta è `stagionale` solo se vista negli ultimi 12 mesi, e lo stato `annunciata` non esiste ancora.
 
 ### Storico iniziale: due dettagli
 
@@ -172,18 +172,23 @@ Tre momenti nella stessa pagina:
 3. **Chiudi il giro:** cursore "Ritorno entro X km da [partenza]" (0-400, passo 10) con cerchio verde sulla mappa; lista dei ritorni nel raggio con distanza dalla partenza; card riepilogo con ogni tratta, compagnia e giorni. Deve essere possibile togliere una tappa.
 
 Come è stato realizzato, oltre il disegno:
-- Le rotte stagionali sono già tratteggiate perché i dati le hanno già; Wikipedia arriva con la 0.5.0.
-- Sopra i 900 px di larghezza il pannello diventa una colonna a sinistra.
+- Le rotte stagionali sono già tratteggiate perché i dati le hanno già; Wikipedia arriva con la 0.6.0.
+- Sopra i 900 px di larghezza il pannello diventa una colonna a sinistra e la barra in alto sta su una riga.
+- **Barra in alto:** con una tappa c'è il campo Partenza; da due in poi la catena e i totali prendono il suo posto, per lasciare spazio alla mappa. Per cambiare partenza si usa Ricomincia.
+- **Schede:** Giro, Opzioni, Aiuto, Info. Usano l'indirizzo (`#aiuto`) così il tasto Indietro del telefono funziona. Le fonti con licenza stanno in Info; nel pannello restano la data e il rimando. Il testo di Novità viene da `CHANGELOG.md`: va scritto in parole semplici e ogni versione deve avere la sua voce, lo controlla un test.
+- **Impostazioni:** raggio predefinito e stagionali all'avvio, in `localStorage` di quel browser. Se la memoria non c'è, valgono i valori iniziali.
 - Toccare la riga di una meta la evidenzia; aggiungerla come tappa si fa col "+" o toccando il punto in mappa.
 - Il giro è `stato.tappe` in `sito/app.js`: la prima è la partenza, le mete si cercano dall'ultima. Si può ripassare da un aeroporto già visitato, purché non sia l'ultima tappa.
 - **Togliere una tappa:** resta un giro di soli voli diretti. Se le due tappe vicine non hanno un volo diretto, da lì in poi si tagliano e il sito lo scrive (`togliTappa` in `sito/logica.js`). Togliendo la partenza, la tappa dopo diventa partenza.
 - Scegliere un aeroporto dal campo Partenza inizia un giro nuovo. Ricomincia e la ✕ del campo azzerano tutto, senza chiedere conferma.
+- **Annulla il rientro** torna ad aggiungere tappe, da entrambe le fasi. Toglie il ritorno solo se era stato scelto con "Scegli" (`stato.ritornoAggiunto`); una tappa aggiunta col "+" resta. "Cambia il ritorno" invece torna alla scelta.
 - Con il dito niente pulsanti + e − sulla mappa: si ingrandisce con due dita.
 - **Fasi del giro** (`stato.fase` in `sito/app.js`): `tappe` si aggiungono tappe, `ritorno` si sceglie come tornare, `chiuso` c'è il riepilogo. Il ritorno è l'ultima voce di `stato.tappe`.
 - "Chiudi il giro" compare da due tappe in su. Se l'ultima tappa è già la partenza (TRN > OTP > TRN) si passa subito al riepilogo.
 - Togliere una tappa da un giro chiuso riporta alla scelta del ritorno; con meno di due tappe si torna ad aggiungere tappe.
 - La lista dei ritorni mostra solo quelli nel raggio. Quelli fuori sono solo in mappa, grigi e non selezionabili. Le stagionali restano tratteggiate anche in verde e in grigio.
-- Il raggio parte da 150 km e dura finché la pagina è aperta. Salvarlo è compito delle Impostazioni (0.6.0).
+- Il raggio parte da quello delle impostazioni; se lo muovi durante la scelta vale fino a Ricomincia.
+- I tempi del riepilogo sono solo in volo, senza soste. Se manca la durata di una tratta il totale dice "almeno".
 - Il riepilogo non confronta i giorni delle tratte: è rimandato alla v2 e il sito lo scrive.
 
 Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazioni (versione, changelog in parole semplici, fonti e licenze, data dei dati). Stati vuoti che spiegano il perché: "Da qui nessun volo diretto nell'area", "Nessun ritorno entro 150 km: prova ad allargare il raggio".
@@ -204,6 +209,6 @@ Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazio
 - **Un solo canvas:** confini, archi e punti usano lo stesso `disegno`. Così i confini restano sotto e non coprono i punti.
 - **Provare i tocchi con Chrome via CDP:** `Input.synthesizeTapGesture` non genera il clic, nemmeno su un link. Si usa `Input.dispatchTouchEvent`, con `touchStart` e `touchEnd`.
 - **Altezza della mappa:** la catena e i suoi messaggi la cambiano senza che scatti `resize`. Prima di inquadrare va chiamato `aggiornaMisureMappa()`, altrimenti da telefono le tappe finiscono sotto il pannello.
-- **Nomi nei dati:** `citta` è in inglese. La traduzione è in `NOMI_ITALIANI` di `sito/logica.js`, con chiave il nome esatto nei dati (es. `Basel, Switzerland/Mulhouse`). `NOMI_PROPRI` è per gli aeroporti che i dati mettono sotto una città grande: BGY è "Milan", l'aeroporto "Il Caravaggio", e la parola Bergamo non compare mai. Le ricerche vanno provate sui dati veri, non solo su dati finti.
+- **Nomi nei dati:** `citta` è in inglese. La traduzione è in `NOMI_ITALIANI` di `sito/logica.js`, con chiave il nome esatto nei dati (es. `Basel, Switzerland/Mulhouse`). `NOMI_AEROPORTI` dà il nome completo alle città con più aeroporti (Milano Malpensa, Londra Heathrow) e distingue due Brest. Se ne aggiungi uno nuovo con lo stesso nome, un test sui dati veri fallisce. BGY è "Milan" nei dati e l'aeroporto "Il Caravaggio": la parola Bergamo non ci sarebbe mai. Le ricerche vanno provate sui dati veri, non solo su dati finti.
 - **`dati/dove_volo.json` nel repo:** il primo l'ho creato con `--prova` e committato a parte. Dalla volta dopo lo aggiorna `Aggiorna_Dati.bat`.
 - **Cronologia git:** un file già committato resta nella cronologia anche se lo cancelli dopo. Prima di ogni commit controlla che i file solo locali non ci siano.

@@ -15,33 +15,41 @@
 </head>
 <body>
   <header class="testata">
-    <h1>Dove_Volo</h1>
-    <span class="versione" id="versione"></span>
-  </header>
+    <div class="marchio">
+      <h1>Dove_Volo</h1>
+      <span class="versione" id="versione"></span>
+    </div>
 
-  <div class="ricerca">
-    <label for="partenza">Partenza</label>
-    <div class="ricerca-campo">
+    <div id="ricerca" class="ricerca">
+      <label for="partenza" class="nascosto">Partenza</label>
       <input id="partenza" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="Città o codice, es. Torino o TRN"
+             placeholder="Partenza: città o codice"
              role="combobox" aria-expanded="false" aria-controls="suggerimenti" aria-autocomplete="list">
       <button id="togli-partenza" class="togli-partenza" type="button" aria-label="Togli la partenza" title="Togli la partenza" hidden>&times;</button>
       <ul id="suggerimenti" class="suggerimenti" role="listbox" aria-label="Aeroporti trovati" hidden></ul>
     </div>
-  </div>
 
-  <nav id="giro" class="giro" aria-label="Il tuo giro" hidden>
-    <div class="giro-riga">
-      <ol id="catena" class="catena"></ol>
-      <button id="ricomincia" class="ricomincia" type="button">Ricomincia</button>
+    <nav id="giro" class="giro" aria-label="Il tuo giro" hidden>
+      <div id="giro-riga" class="giro-riga">
+        <ol id="catena" class="catena"></ol>
+        <button id="ricomincia" class="ricomincia" type="button">Ricomincia</button>
+      </div>
+      <p id="giro-totale" class="giro-totale"></p>
+      <p id="messaggio-giro" class="messaggio-giro" role="status" hidden></p>
+    </nav>
+
+    <div class="schede" role="tablist" aria-label="Sezioni del sito">
+      <button id="scheda-giro" class="scheda" type="button" role="tab" aria-controls="vista-giro" aria-selected="true">Giro</button>
+      <button id="scheda-impostazioni" class="scheda" type="button" role="tab" aria-controls="vista-impostazioni" aria-selected="false">Opzioni</button>
+      <button id="scheda-aiuto" class="scheda" type="button" role="tab" aria-controls="vista-aiuto" aria-selected="false">Aiuto</button>
+      <button id="scheda-informazioni" class="scheda" type="button" role="tab" aria-controls="vista-informazioni" aria-selected="false">Info</button>
     </div>
-    <p id="messaggio-giro" class="messaggio-giro" role="status" hidden></p>
-  </nav>
+  </header>
 
-  <main class="principale">
+  <main id="vista-giro" class="principale" role="tabpanel" aria-labelledby="scheda-giro">
     <div id="mappa" class="mappa" aria-label="Mappa delle rotte"></div>
 
-    <aside class="legenda" aria-label="Legenda">
+    <aside id="legenda" class="legenda" aria-label="Legenda">
       <span id="legenda-attiva" class="voce-legenda"><i class="linea linea-attiva"></i>Attiva</span>
       <span id="legenda-stagionale" class="voce-legenda"><i class="linea linea-stagionale"></i>Stagionale</span>
       <span id="legenda-dentro" class="voce-legenda" hidden><i class="linea linea-dentro"></i>Nel raggio</span>
@@ -50,10 +58,13 @@
     </aside>
 
     <section id="pannello" class="pannello" aria-label="Mete dirette">
-      <button id="maniglia" class="maniglia" type="button" aria-label="Allarga o riduci il pannello">
-        <span class="maniglia-segno"></span>
-        <span id="titolo" class="pannello-titolo">Caricamento dei dati...</span>
-      </button>
+      <div class="pannello-testa">
+        <button id="maniglia" class="maniglia" type="button" aria-label="Allarga o riduci il pannello">
+          <span class="maniglia-segno"></span>
+          <span id="titolo" class="pannello-titolo">Caricamento dei dati...</span>
+        </button>
+        <button id="chiudi-giro" class="azione azione-testa" type="button" hidden>Chiudi il giro</button>
+      </div>
       <div id="filtri" class="filtri" hidden>
         <button id="filtro-attive" class="pillola pillola-attive" type="button" aria-pressed="true">Attive</button>
         <button id="filtro-stagionali" class="pillola pillola-stagionali" type="button" aria-pressed="true">Stagionali</button>
@@ -62,27 +73,111 @@
           <select id="filtro-paese"></select>
         </label>
       </div>
-      <button id="chiudi-giro" class="azione" type="button" hidden>Chiudi il giro</button>
       <div id="ritorno" class="ritorno" hidden>
         <label for="raggio" id="raggio-testo" class="raggio-testo"></label>
         <input id="raggio" class="raggio" type="range" min="0" max="400" step="10" value="150">
-        <button id="altre-tappe" class="link" type="button">Aggiungi altre tappe</button>
       </div>
       <p id="avviso" class="avviso" hidden></p>
+      <div id="azioni-rientro" class="azioni-rientro" hidden>
+        <button id="annulla-rientro" class="azione azione-neutra" type="button">Annulla il rientro</button>
+        <button id="cambia-ritorno" class="azione" type="button" hidden>Cambia il ritorno</button>
+      </div>
       <div class="scorrimento">
         <p id="vuoto" class="vuoto" hidden></p>
         <ul id="lista" class="lista"></ul>
         <section id="riepilogo" class="riepilogo" aria-label="Riepilogo del giro" hidden>
           <h2 id="riepilogo-titolo"></h2>
           <ol id="riepilogo-tratte" class="tratte"></ol>
+          <p id="riepilogo-totale" class="riepilogo-totale"></p>
           <p id="riepilogo-fine" class="riepilogo-fine"></p>
-          <p class="riepilogo-nota">I giorni delle tratte non vengono confrontati: controlla che si incastrino prima di prenotare.</p>
-          <button id="cambia-ritorno" class="azione" type="button" hidden>Cambia il ritorno</button>
+          <p class="riepilogo-nota">Il tempo è solo quello in volo, senza soste. I giorni delle tratte non vengono confrontati: controlla che si incastrino prima di prenotare.</p>
         </section>
         <footer id="fonti" class="fonti"></footer>
       </div>
     </section>
   </main>
+
+  <section id="vista-impostazioni" class="pagina" role="tabpanel" aria-labelledby="scheda-impostazioni" tabindex="-1" hidden>
+    <div class="pagina-corpo">
+      <h2>Impostazioni</h2>
+      <p class="pagina-nota">Restano salvate solo su questo browser e questo dispositivo.</p>
+
+      <label class="opzione" for="opzione-raggio">
+        <span class="opzione-nome" id="opzione-raggio-testo"></span>
+        <span class="opzione-spiega">Quanto lontano dalla partenza puoi atterrare quando chiudi il giro. Puoi sempre cambiarlo sul momento.</span>
+        <input id="opzione-raggio" class="raggio" type="range" min="0" max="400" step="10">
+      </label>
+
+      <label class="opzione opzione-spunta" for="opzione-stagionali">
+        <input id="opzione-stagionali" type="checkbox">
+        <span>
+          <span class="opzione-nome">Mostra le rotte stagionali</span>
+          <span class="opzione-spiega">Se la togli, all'avvio vedi solo le rotte attive. Puoi riaccenderle dal filtro.</span>
+        </span>
+      </label>
+
+      <p id="opzioni-stato" class="pagina-nota" role="status"></p>
+    </div>
+  </section>
+
+  <section id="vista-aiuto" class="pagina" role="tabpanel" aria-labelledby="scheda-aiuto" tabindex="-1" hidden>
+    <div class="pagina-corpo">
+      <h2>Aiuto</h2>
+
+      <h3>Come si costruisce un giro</h3>
+      <ol class="passi">
+        <li><strong>Scegli la partenza</strong> scrivendo una città o un codice, oppure toccando un punto sulla mappa.</li>
+        <li><strong>Aggiungi le tappe</strong> con il pulsante "+" o toccando il punto della meta. Poi vedi le mete dirette da lì.</li>
+        <li><strong>Chiudi il giro</strong>: scegli quanto lontano dalla partenza puoi atterrare e poi il volo di ritorno.</li>
+        <li><strong>Leggi il riepilogo</strong>: ogni tratta con compagnie, giorni, chilometri e tempo in volo, più i totali.</li>
+      </ol>
+
+      <h3>Cambiare idea</h3>
+      <ul class="elenco">
+        <li><strong>Togliere una tappa:</strong> tocca la × sulla tappa. Se tra le due vicine non c'è un volo diretto, il giro si taglia da lì in poi e il sito te lo scrive.</li>
+        <li><strong>Annullare il rientro:</strong> "Annulla il rientro" toglie il volo di ritorno e ti riporta ad aggiungere tappe.</li>
+        <li><strong>Cambiare solo il ritorno:</strong> "Cambia il ritorno", nel riepilogo.</li>
+        <li><strong>Ricominciare:</strong> "Ricomincia" cancella tutto il giro, senza chiedere conferma.</li>
+      </ul>
+
+      <h3>Cosa vogliono dire i colori</h3>
+      <ul class="elenco elenco-colori">
+        <li><i class="linea linea-attiva"></i><span><strong>Blu:</strong> rotta attiva, vista nei voli di questa settimana.</span></li>
+        <li><i class="linea linea-stagionale"></i><span><strong>Arancione tratteggiato:</strong> rotta stagionale, vista negli ultimi 12 mesi ma non adesso. Potrebbe non volare nel tuo periodo.</span></li>
+        <li><i class="linea linea-giro"></i><span><strong>Bianco:</strong> le tratte del tuo giro.</span></li>
+        <li><i class="linea linea-dentro"></i><span><strong>Verde:</strong> voli di ritorno dentro il raggio che hai scelto.</span></li>
+        <li><i class="linea linea-fuori"></i><span><strong>Grigio:</strong> voli possibili, ma fuori dal raggio.</span></li>
+      </ul>
+
+      <h3>Domande</h3>
+      <dl class="domande">
+        <dt>Perché non ci sono i prezzi?</dt>
+        <dd>Per ora il sito serve a capire quali giri sono possibili, non quanto costano.</dd>
+        <dt>Cosa sono i pallini?</dt>
+        <dd>I sette giorni, da lunedì a domenica. Quelli accesi sono i giorni in cui vola almeno una compagnia.</dd>
+        <dt>Il giro funziona davvero con quei giorni?</dt>
+        <dd>Il sito non controlla che i giorni delle tratte si incastrino: va verificato prima di prenotare.</dd>
+        <dt>Perché a volte manca il numero di voli?</dt>
+        <dd>Le rotte stagionali non hanno voli questa settimana, quindi mostrano solo le compagnie. Per alcuni aeroporti mancano anche dei giorni nei dati: in quel caso il sito lo segnala.</dd>
+        <dt>Posso fidarmi dei dati?</dt>
+        <dd>Sono una buona base per farsi un'idea, ma possono non essere aggiornati. Controlla sempre con la compagnia prima di prenotare.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section id="vista-informazioni" class="pagina" role="tabpanel" aria-labelledby="scheda-informazioni" tabindex="-1" hidden>
+    <div class="pagina-corpo">
+      <h2>Informazioni</h2>
+      <p>Dove_Volo serve a costruire viaggi in più tappe con voli diretti in Europa. È un progetto personale, aperto e gratuito: <a href="https://github.com/dedavi97/Dove_Volo" target="_blank" rel="noopener noreferrer">il codice è su GitHub</a>.</p>
+      <p id="info-stato" class="pagina-nota"></p>
+
+      <h3>Fonti e licenze</h3>
+      <ul id="info-fonti" class="elenco"></ul>
+
+      <h3>Novità</h3>
+      <div id="info-changelog" class="changelog"></div>
+    </div>
+  </section>
 
   <script src="sito/vendor/leaflet/leaflet.js"></script>
   <script type="module" src="sito/app.js"></script>

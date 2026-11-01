@@ -1,8 +1,8 @@
 // La pagina: legge i dati, disegna mappa, giro e lista, risponde ai tocchi.
 import {
-  cercaAeroporti, contaPartenze, controllaDati, filtraMete, meteDa, nomeCitta, nomePaese, paesiDelleMete,
-  puntiArco, riepilogoGiro, testoData, testoDurata, testoGiorni, testoKm, testoMete, testoRitorni, testoTappeTolte,
-  testoTratte, testoVicino, togliTappa, trovaRitorni,
+  cercaAeroporti, contaPartenze, controllaDati, filtraMete, leggiChangelog, leggiImpostazioni, meteDa, nomeCitta,
+  nomePaese, paesiDelleMete, puntiArco, riepilogoGiro, salvaImpostazioni, testoData, testoDurata, testoGiorni, testoKm,
+  testoMete, testoRitorni, testoTappeTolte, testoTotale, testoTratte, testoVicino, togliTappa, trovaRitorni,
 } from "./logica.js";
 
 const L = window.L;
@@ -12,7 +12,20 @@ const CENTRO_EUROPA = [50, 14];
 // Il mondo intero. Deve restare piu' grande di cio' che mostra un telefono allo zoom minimo:
 // se e' piu' piccolo, Leaflet ricentra la mappa sul mezzo di questi limiti e sposta l'inquadratura.
 const LIMITI_MAPPA = [[-85, -180], [85, 180]];
-const RAGGIO_INIZIALE_KM = 150;
+const SCHEDE = ["giro", "impostazioni", "aiuto", "informazioni"];
+const CREDITI_MAPPA = [
+  { nome: "Natural Earth", url: "https://www.naturalearthdata.com/", licenza: "Pubblico dominio", ruolo: "confini sulla mappa" },
+  { nome: "Leaflet", url: "https://leafletjs.com/", licenza: "BSD-2", ruolo: "disegno della mappa" },
+];
+
+// La memoria del browser puo' non esistere o dare errore appena la si tocca.
+let memoria = null;
+try {
+  memoria = window.localStorage;
+} catch {
+  memoria = null;
+}
+const impostazioni = leggiImpostazioni(memoria);
 
 const stile = getComputedStyle(document.documentElement);
 const colore = (nome) => stile.getPropertyValue(nome).trim();
@@ -29,13 +42,17 @@ const COLORI = {
 
 const pagina = {
   versione: document.getElementById("versione"),
+  ricerca: document.getElementById("ricerca"),
   campo: document.getElementById("partenza"),
   togli: document.getElementById("togli-partenza"),
   suggerimenti: document.getElementById("suggerimenti"),
   giro: document.getElementById("giro"),
+  giroRiga: document.getElementById("giro-riga"),
+  giroTotale: document.getElementById("giro-totale"),
   catena: document.getElementById("catena"),
   ricomincia: document.getElementById("ricomincia"),
   messaggioGiro: document.getElementById("messaggio-giro"),
+  legenda: document.getElementById("legenda"),
   legendaAttiva: document.getElementById("legenda-attiva"),
   legendaStagionale: document.getElementById("legenda-stagionale"),
   legendaDentro: document.getElementById("legenda-dentro"),
@@ -45,10 +62,12 @@ const pagina = {
   ritorno: document.getElementById("ritorno"),
   raggio: document.getElementById("raggio"),
   raggioTesto: document.getElementById("raggio-testo"),
-  altreTappe: document.getElementById("altre-tappe"),
+  azioniRientro: document.getElementById("azioni-rientro"),
+  annullaRientro: document.getElementById("annulla-rientro"),
   riepilogo: document.getElementById("riepilogo"),
   riepilogoTitolo: document.getElementById("riepilogo-titolo"),
   riepilogoTratte: document.getElementById("riepilogo-tratte"),
+  riepilogoTotale: document.getElementById("riepilogo-totale"),
   riepilogoFine: document.getElementById("riepilogo-fine"),
   cambiaRitorno: document.getElementById("cambia-ritorno"),
   pannello: document.getElementById("pannello"),
@@ -62,6 +81,13 @@ const pagina = {
   vuoto: document.getElementById("vuoto"),
   lista: document.getElementById("lista"),
   fonti: document.getElementById("fonti"),
+  opzioneRaggio: document.getElementById("opzione-raggio"),
+  opzioneRaggioTesto: document.getElementById("opzione-raggio-testo"),
+  opzioneStagionali: document.getElementById("opzione-stagionali"),
+  opzioniStato: document.getElementById("opzioni-stato"),
+  infoStato: document.getElementById("info-stato"),
+  infoFonti: document.getElementById("info-fonti"),
+  infoChangelog: document.getElementById("info-changelog"),
 };
 
 const stato = {
@@ -69,10 +95,11 @@ const stato = {
   partenze: {},
   tappe: [], // il giro: la prima e' la partenza, le mete si cercano dall'ultima
   fase: "tappe", // "tappe": si aggiungono tappe; "ritorno": si sceglie come tornare; "chiuso": giro finito
-  raggio: RAGGIO_INIZIALE_KM,
+  raggio: impostazioni.raggio,
+  ritornoAggiunto: false, // true se l'ultima tappa e' stata scelta come ritorno e non aggiunta col "+"
   mete: [],
   selezionata: null,
-  filtri: { attive: true, stagionali: true, paese: "" },
+  filtri: { attive: true, stagionali: impostazioni.stagionali, paese: "" },
   trovati: [],
   evidenziato: -1,
 };
@@ -281,8 +308,13 @@ function aggiornaMisureMappa() {
   mappa.invalidateSize({ pan: false });
 }
 
+// Con una tappa basta il campo Partenza; da due in poi la catena prende il suo posto e lascia spazio alla mappa.
 function disegnaCatena() {
-  pagina.giro.hidden = !stato.tappe.length;
+  const giroVero = stato.tappe.length >= 2;
+  pagina.ricerca.hidden = giroVero;
+  pagina.giro.hidden = !giroVero && pagina.messaggioGiro.hidden;
+  pagina.giroRiga.hidden = !giroVero;
+  pagina.giroTotale.textContent = giroVero ? testoGiroInBreve() : "";
   disegnaLegenda();
   const voci = stato.tappe.map((codice, i) => {
     const voce = crea("li");
@@ -306,7 +338,13 @@ function disegnaCatena() {
   pagina.catena.scrollLeft = pagina.catena.scrollWidth;
 }
 
+function testoGiroInBreve() {
+  const riepilogo = riepilogoGiro(stato.dati, stato.tappe);
+  return `${testoTratte(riepilogo.tratte.length)} · ${testoTotale(riepilogo)}`;
+}
+
 function disegnaLegenda() {
+  pagina.legenda.hidden = stato.fase === "chiuso";
   pagina.legendaAttiva.hidden = stato.fase !== "tappe";
   pagina.legendaStagionale.hidden = stato.fase !== "tappe";
   pagina.legendaDentro.hidden = stato.fase !== "ritorno";
@@ -443,17 +481,20 @@ function schedaTratta({ da, a, cittaDa, meta }) {
   const voce = crea("li", "tratta");
   const testa = crea("div", "tratta-testa");
   const cittaA = meta ? meta.citta : a;
-  testa.append(crea("span", "tratta-nome", `${da} > ${a} · ${cittaDa} - ${cittaA}`));
-  if (meta && meta.stato !== "attiva") testa.append(crea("span", "tratta-stagionale", "stagionale"));
-  voce.append(testa);
+  testa.append(crea("span", "tratta-nome codice", `${da} > ${a}`));
+  if (meta) {
+    const tempi = [testoKm(meta.km), testoDurata(meta.durata) || "durata non nota"].join(" · ");
+    testa.append(crea("span", "tratta-tempi", tempi));
+  }
+  voce.append(testa, crea("span", "tratta-citta", `${cittaDa} - ${cittaA}`));
   if (!meta) {
     voce.append(crea("span", "tratta-dettagli", "Questa tratta non è più nei dati."));
     return voce;
   }
-  voce.append(crea("span", "tratta-dettagli", testoCompagnie(meta)));
-  const dettagli = [testoKm(meta.km), testoDurata(meta.durata)];
-  if (meta.voliSett) dettagli.push(`${meta.voliSett} voli/sett`);
-  voce.append(crea("span", "tratta-dettagli", dettagli.filter(Boolean).join(" · ")));
+  const compagnie = crea("span", "tratta-dettagli", testoCompagnie(meta));
+  if (meta.voliSett) compagnie.append(` · ${meta.voliSett} voli/sett`);
+  if (meta.stato !== "attiva") compagnie.append(crea("span", "tratta-stagionale", " · stagionale"));
+  voce.append(compagnie);
   if (meta.giorni) voce.append(pallini(meta.giorni));
   return voce;
 }
@@ -463,14 +504,18 @@ function disegnaRiepilogo() {
   const cittaPartenza = nomeCitta(stato.dati.aeroporti[partenza()], partenza());
   const cittaFine = nomeCitta(stato.dati.aeroporti[ultimaTappa()], ultimaTappa());
   const chiuso = stato.fase === "chiuso";
-  const totale = `${testoTratte(riepilogo.tratte.length)} · ${testoKm(riepilogo.kmTotali)}`;
-  pagina.riepilogoTitolo.textContent = chiuso ? `Il tuo giro: ${totale}` : `Il giro finora: ${totale}`;
+  pagina.riepilogoTitolo.textContent = chiuso ? "Il tuo giro" : "Il giro finora";
   pagina.riepilogoTratte.replaceChildren(...riepilogo.tratte.map(schedaTratta));
+  pagina.riepilogoTotale.replaceChildren(
+    crea("span", null, `Totale: ${testoTratte(riepilogo.tratte.length)}`),
+    crea("span", null, testoTotale(riepilogo)),
+  );
   pagina.riepilogoFine.hidden = !chiuso;
   pagina.riepilogoFine.textContent = riepilogo.distanzaFinale === 0
     ? `Torni a ${cittaPartenza}.`
     : `Torni a ${cittaFine}, a ${testoKm(riepilogo.distanzaFinale)} da ${cittaPartenza}.`;
   pagina.cambiaRitorno.hidden = !chiuso;
+  pagina.azioniRientro.hidden = stato.fase === "tappe";
   if (chiuso) pagina.titolo.textContent = "Giro chiuso";
 }
 
@@ -480,6 +525,7 @@ function disegnaPannello() {
   pagina.chiudiGiro.hidden = fase !== "tappe" || stato.tappe.length < 2;
   pagina.ritorno.hidden = fase !== "ritorno";
   pagina.riepilogo.hidden = fase === "tappe";
+  pagina.azioniRientro.hidden = fase === "tappe";
   if (fase === "tappe") {
     disegnaLista();
   } else {
@@ -502,20 +548,64 @@ function disegnaFiltroPaese() {
   pagina.filtroPaese.value = stato.filtri.paese;
 }
 
+function linkEsterno(testo, url) {
+  const link = crea("a", null, testo);
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return link;
+}
+
+// Nel pannello solo la data e il rimando: fonti e licenze complete stanno in Informazioni.
 function disegnaFonti() {
   const { dati } = stato;
-  pagina.fonti.replaceChildren(`Dati aggiornati al ${testoData(dati.aggiornato)}. Fonti: `);
-  dati.fonti.forEach((fonte, i) => {
-    const link = crea("a", null, fonte.nome);
-    link.href = fonte.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    pagina.fonti.append(i ? "; " : "", link, ` (${fonte.licenza})`);
-  });
-  pagina.fonti.append(
-    ". Mappa: Natural Earth (Pubblico dominio) con Leaflet.",
-    " Le rotte possono non essere aggiornate: controlla sempre con la compagnia prima di prenotare.",
+  const collegamento = crea("a", null, "Fonti e licenze");
+  collegamento.href = "#informazioni";
+  pagina.fonti.replaceChildren(
+    `Dati aggiornati al ${testoData(dati.aggiornato)}. Controlla sempre con la compagnia prima di prenotare. `,
+    collegamento,
   );
+}
+
+function disegnaInformazioni() {
+  const { dati } = stato;
+  const partenzeContate = Object.keys(stato.partenze).length;
+  const rotte = dati.rotte.filter((r) => r.stato !== "nascosta").length;
+  pagina.infoStato.textContent = `Versione ${pagina.versione.textContent.replace("v", "") || "non nota"}. `
+    + `Dati aggiornati al ${testoData(dati.aggiornato)}: ${partenzeContate} aeroporti e ${rotte} rotte.`;
+  const voce = (fonte, spiega) => {
+    const riga = crea("li");
+    riga.append(linkEsterno(fonte.nome, fonte.url), ` (${fonte.licenza}): ${spiega}`);
+    return riga;
+  };
+  const spiegazioni = {
+    "omaxim/airline-route-data": "rotte, voli a settimana e giorni, ricavati dagli orari di flightsfrom.com",
+    OurAirports: "nomi, coordinate e paesi degli aeroporti",
+  };
+  pagina.infoFonti.replaceChildren(
+    ...dati.fonti.map((fonte) => voce(fonte, spiegazioni[fonte.nome] || "dati del sito")),
+    ...CREDITI_MAPPA.map((credito) => voce(credito, credito.ruolo)),
+  );
+}
+
+let changelogCaricato = false;
+
+function caricaChangelog() {
+  if (changelogCaricato) return;
+  changelogCaricato = true;
+  fetch("CHANGELOG.md", { cache: "no-cache" })
+    .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
+    .then((testo) => {
+      pagina.infoChangelog.replaceChildren(...leggiChangelog(testo).flatMap(({ titolo, voci }) => {
+        const elenco = crea("ul");
+        elenco.append(...voci.map((v) => crea("li", null, v)));
+        return [crea("h4", null, titolo), elenco];
+      }));
+    })
+    .catch(() => {
+      changelogCaricato = false;
+      pagina.infoChangelog.replaceChildren(crea("p", "pagina-nota", "Non riesco a leggere le novità: riprova tra poco."));
+    });
 }
 
 // ---------------------------------------------------------------- azioni
@@ -540,6 +630,7 @@ function aggiornaGiro() {
 function iniziaGiro(codice) {
   stato.tappe = [codice];
   stato.fase = "tappe";
+  stato.ritornoAggiunto = false;
   mostraMessaggioGiro("");
   aggiornaGiro();
 }
@@ -557,6 +648,7 @@ function rimuoviTappa(indice) {
     return;
   }
   stato.tappe = esito.tappe;
+  stato.ritornoAggiunto = false;
   if (stato.fase !== "tappe") stato.fase = faseDiChiusura();
   mostraMessaggioGiro(testoTappeTolte(esito));
   aggiornaGiro();
@@ -570,6 +662,7 @@ function faseDiChiusura() {
 
 function chiudiGiro() {
   stato.fase = faseDiChiusura();
+  stato.ritornoAggiunto = false;
   mostraMessaggioGiro("");
   aggiornaGiro();
 }
@@ -577,18 +670,23 @@ function chiudiGiro() {
 function scegliRitorno(codice) {
   stato.tappe = [...stato.tappe, codice];
   stato.fase = "chiuso";
+  stato.ritornoAggiunto = true;
   mostraMessaggioGiro("");
   aggiornaGiro();
 }
 
 function cambiaRitorno() {
   stato.tappe = stato.tappe.slice(0, -1);
-  stato.fase = faseDiChiusura();
+  stato.ritornoAggiunto = false;
+  stato.fase = "ritorno";
   mostraMessaggioGiro("");
   aggiornaGiro();
 }
 
-function altreTappe() {
+// Si torna ad aggiungere tappe. Se il ritorno era stato scelto, si toglie; le tappe aggiunte col "+" restano.
+function annullaRientro() {
+  if (stato.ritornoAggiunto) stato.tappe = stato.tappe.slice(0, -1);
+  stato.ritornoAggiunto = false;
   stato.fase = "tappe";
   mostraMessaggioGiro("");
   aggiornaGiro();
@@ -613,6 +711,7 @@ function mostraInvito() {
   pagina.chiudiGiro.hidden = true;
   pagina.ritorno.hidden = true;
   pagina.riepilogo.hidden = true;
+  pagina.azioniRientro.hidden = true;
   pagina.lista.replaceChildren();
   mostraVuoto("Scrivi una città o un codice qui sopra, oppure tocca un punto sulla mappa.");
 }
@@ -621,11 +720,13 @@ function mostraInvito() {
 function ricomincia() {
   stato.tappe = [];
   stato.fase = "tappe";
+  stato.ritornoAggiunto = false;
+  stato.raggio = impostazioni.raggio;
   stato.mete = [];
   stato.selezionata = null;
-  stato.filtri = { attive: true, stagionali: true, paese: "" };
+  stato.filtri = { attive: true, stagionali: impostazioni.stagionali, paese: "" };
   pagina.filtroAttive.setAttribute("aria-pressed", "true");
-  pagina.filtroStagionali.setAttribute("aria-pressed", "true");
+  pagina.filtroStagionali.setAttribute("aria-pressed", String(impostazioni.stagionali));
   pagina.campo.value = "";
   mostraMessaggioGiro("");
   chiudiSuggerimenti();
@@ -665,10 +766,86 @@ pagina.filtroPaese.addEventListener("change", () => {
 });
 pagina.ricomincia.addEventListener("click", ricomincia);
 pagina.chiudiGiro.addEventListener("click", chiudiGiro);
-pagina.altreTappe.addEventListener("click", altreTappe);
+pagina.annullaRientro.addEventListener("click", annullaRientro);
 pagina.cambiaRitorno.addEventListener("click", cambiaRitorno);
 pagina.raggio.addEventListener("input", () => cambiaRaggio(false));
 pagina.raggio.addEventListener("change", () => cambiaRaggio(true));
+
+// ---------------------------------------------------------------- schede
+
+function schedaDaIndirizzo() {
+  const scheda = window.location.hash.slice(1);
+  return SCHEDE.includes(scheda) ? scheda : "giro";
+}
+
+// Le schede usano l'indirizzo (#aiuto): cosi' il tasto Indietro del telefono torna al giro.
+function mostraScheda() {
+  const attiva = schedaDaIndirizzo();
+  for (const scheda of SCHEDE) {
+    const aperta = scheda === attiva;
+    document.getElementById(`scheda-${scheda}`).setAttribute("aria-selected", String(aperta));
+    document.getElementById(`vista-${scheda}`).hidden = !aperta;
+  }
+  const inGiro = attiva === "giro";
+  pagina.ricerca.classList.toggle("nascosta-in-pagina", !inGiro);
+  pagina.giro.classList.toggle("nascosta-in-pagina", !inGiro);
+  if (inGiro) {
+    mappa.invalidateSize({ pan: false });
+    if (partenza()) disegnaRotte(true);
+  } else {
+    document.getElementById(`vista-${attiva}`).scrollTop = 0;
+    if (attiva === "informazioni") {
+      if (stato.dati) disegnaInformazioni();
+      caricaChangelog();
+    }
+  }
+}
+
+function apriScheda(scheda) {
+  const indirizzo = scheda === "giro" ? window.location.pathname + window.location.search : `#${scheda}`;
+  if (scheda === schedaDaIndirizzo()) return;
+  if (scheda === "giro") {
+    window.history.pushState(null, "", indirizzo);
+    mostraScheda();
+  } else {
+    window.location.hash = scheda;
+  }
+}
+
+for (const scheda of SCHEDE) {
+  document.getElementById(`scheda-${scheda}`).addEventListener("click", () => apriScheda(scheda));
+}
+window.addEventListener("hashchange", mostraScheda);
+window.addEventListener("popstate", mostraScheda);
+
+function disegnaImpostazioni() {
+  pagina.opzioneRaggio.value = impostazioni.raggio;
+  pagina.opzioneRaggioTesto.textContent = `Raggio di ritorno predefinito: ${impostazioni.raggio} km`;
+  pagina.opzioneStagionali.checked = impostazioni.stagionali;
+}
+
+function salvaOpzioni() {
+  const riuscito = salvaImpostazioni(memoria, impostazioni);
+  pagina.opzioniStato.textContent = riuscito
+    ? "Salvato."
+    : "Questo browser non permette di salvare: le scelte valgono finché la pagina resta aperta.";
+}
+
+pagina.opzioneRaggio.addEventListener("input", () => {
+  impostazioni.raggio = Number(pagina.opzioneRaggio.value);
+  // Il raggio vale subito, a meno che non si stia gia' scegliendo un ritorno con il proprio cursore.
+  if (stato.fase !== "ritorno") stato.raggio = impostazioni.raggio;
+  disegnaImpostazioni();
+  salvaOpzioni();
+});
+
+pagina.opzioneStagionali.addEventListener("change", () => {
+  impostazioni.stagionali = pagina.opzioneStagionali.checked;
+  stato.filtri.stagionali = impostazioni.stagionali;
+  pagina.filtroStagionali.setAttribute("aria-pressed", String(impostazioni.stagionali));
+  if (partenza() && stato.fase === "tappe") disegnaPannello();
+  salvaOpzioni();
+});
 
 // ---------------------------------------------------------------- ricerca
 
@@ -837,8 +1014,15 @@ function mostraErrore(testo) {
 async function avvia() {
   fetch("VERSIONE", { cache: "no-cache" })
     .then((r) => (r.ok ? r.text() : ""))
-    .then((testo) => { pagina.versione.textContent = testo.trim() ? `v${testo.trim()}` : ""; })
+    .then((testo) => {
+      pagina.versione.textContent = testo.trim() ? `v${testo.trim()}` : "";
+      if (stato.dati) disegnaInformazioni();
+    })
     .catch(() => {});
+
+  disegnaImpostazioni();
+  pagina.filtroStagionali.setAttribute("aria-pressed", String(impostazioni.stagionali));
+  mostraScheda();
 
   try {
     const risposta = await fetch(FILE_DATI, { cache: "no-cache" });
@@ -855,6 +1039,7 @@ async function avvia() {
   stato.partenze = contaPartenze(stato.dati);
   mostraInvito();
   disegnaFonti();
+  disegnaInformazioni();
   disegnaTuttiGliAeroporti();
 }
 

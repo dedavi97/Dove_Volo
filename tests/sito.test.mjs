@@ -4,9 +4,10 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
-  cercaAeroporti, contaPartenze, controllaDati, distanzaKm, filtraMete, meteDa, nomeCitta, nomePaese, normalizza,
-  paesiDelleMete, puntiArco, riepilogoGiro, rottaVisibile, testoData, testoDurata, testoGiorni, testoKm, testoMete,
-  testoRitorni, testoTappeTolte, testoTratte, testoVicino, togliTappa, trovaRitorni,
+  cercaAeroporti, contaPartenze, controllaDati, distanzaKm, filtraMete, IMPOSTAZIONI_INIZIALI, leggiChangelog,
+  leggiImpostazioni, meteDa, nomeCitta, nomePaese, normalizza, paesiDelleMete, puntiArco, riepilogoGiro,
+  rottaVisibile, salvaImpostazioni, testoData, testoDurata, testoGiorni, testoKm, testoMete, testoRitorni,
+  testoTappeTolte, testoTotale, testoTratte, testoVicino, togliTappa, trovaRitorni,
 } from "../sito/logica.js";
 
 function aeroporto(citta, paese, nome = `${citta} Airport`, lat = 45, lon = 9) {
@@ -295,10 +296,13 @@ test("riepilogo: tratte, compagnie, km totali e arrivo vicino alla partenza", ()
   const riepilogo = riepilogoGiro(CHIUSURA, ["TRN", "OTP", "BGY"]);
   assert.equal(riepilogo.tratte.length, 2);
   assert.deepEqual(riepilogo.tratte.map((t) => [t.da, t.a]), [["TRN", "OTP"], ["OTP", "BGY"]]);
-  assert.equal(riepilogo.tratte[1].cittaDa, "Bucarest");
-  assert.equal(riepilogo.tratte[1].meta.citta, "Bergamo");
+  assert.equal(riepilogo.tratte[1].cittaDa, "Bucarest Otopeni");
+  assert.equal(riepilogo.tratte[1].meta.citta, "Milano Bergamo");
   assert.equal(riepilogo.tratte[1].meta.voliSett, 28);
   assert.equal(riepilogo.kmTotali, 1452 + 1290);
+  assert.equal(riepilogo.minutiTotali, 145 + 130);
+  assert.equal(riepilogo.durataCompleta, true);
+  assert.equal(testoTotale(riepilogo), "2742 km · 4 h 35 min in volo");
   assert.equal(riepilogo.distanzaFinale, distanzaKm(CHIUSURA.aeroporti.TRN, CHIUSURA.aeroporti.BGY));
 });
 
@@ -317,6 +321,65 @@ test("riepilogo: una tratta sparita dai dati non rompe nulla", () => {
   const riepilogo = riepilogoGiro(CHIUSURA, ["TRN", "MAD"]);
   assert.equal(riepilogo.tratte[0].meta, null);
   assert.equal(riepilogo.kmTotali, 0);
+  assert.equal(riepilogo.durataCompleta, false);
+  assert.equal(testoTotale(riepilogo), "0 km");
+});
+
+test("riepilogo: se manca una durata il totale e' un minimo", () => {
+  const dati = {
+    ...CHIUSURA,
+    rotte: [
+      rotta("TRN", "OTP", "attiva", VOLO, { km: 100, durata_min: 60 }),
+      rotta("OTP", "MAD", "attiva", VOLO, { km: 200, durata_min: null }),
+    ],
+  };
+  assert.equal(testoTotale(riepilogoGiro(dati, ["TRN", "OTP", "MAD"])), "300 km · almeno 1 h in volo");
+});
+
+test("changelog: versioni e voci, senza i segni del file", () => {
+  const testo = "# Changelog\n\nIntro.\n\n## 0.2.0 · oggi\n\nFrase.\n\n- Una `cosa`\n- Altra\n\n## 0.1.0 · ieri\n- Prima\r\n";
+  assert.deepEqual(leggiChangelog(testo), [
+    { titolo: "0.2.0 · oggi", voci: ["Frase.", "Una cosa", "Altra"] },
+    { titolo: "0.1.0 · ieri", voci: ["Prima"] },
+  ]);
+  assert.deepEqual(leggiChangelog(""), []);
+});
+
+test("il vero changelog si legge e la prima versione e' quella attuale", () => {
+  const leggi = (nome) => readFileSync(new URL(`../${nome}`, import.meta.url), "utf8");
+  const [prima] = leggiChangelog(leggi("CHANGELOG.md"));
+  assert.ok(prima.titolo.startsWith(leggi("VERSIONE").trim()), prima.titolo);
+  assert.ok(prima.voci.length > 0);
+});
+
+function memoriaFinta(iniziale = null) {
+  let valore = iniziale;
+  return { getItem: () => valore, setItem: (_, v) => { valore = v; } };
+}
+
+test("impostazioni: senza nulla di salvato valgono quelle iniziali", () => {
+  assert.deepEqual(leggiImpostazioni(memoriaFinta()), IMPOSTAZIONI_INIZIALI);
+  assert.deepEqual(leggiImpostazioni(null), IMPOSTAZIONI_INIZIALI);
+});
+
+test("impostazioni: si salvano e si rileggono", () => {
+  const memoria = memoriaFinta();
+  assert.equal(salvaImpostazioni(memoria, { raggio: 300, stagionali: false }), true);
+  assert.deepEqual(leggiImpostazioni(memoria), { raggio: 300, stagionali: false });
+});
+
+test("impostazioni: valori rovinati non rompono nulla", () => {
+  for (const guasto of ["non json", "null", '{"raggio":9999}', '{"raggio":"x","stagionali":"si"}', '{"raggio":-10}']) {
+    assert.deepEqual(leggiImpostazioni(memoriaFinta(guasto)), IMPOSTAZIONI_INIZIALI, guasto);
+  }
+  assert.equal(leggiImpostazioni(memoriaFinta('{"raggio":127,"stagionali":false}')).raggio, 130);
+});
+
+test("impostazioni: memoria che da' errore", () => {
+  const rotta = { getItem() { throw new Error("no"); }, setItem() { throw new Error("no"); } };
+  assert.deepEqual(leggiImpostazioni(rotta), IMPOSTAZIONI_INIZIALI);
+  assert.equal(salvaImpostazioni(rotta, IMPOSTAZIONI_INIZIALI), false);
+  assert.equal(salvaImpostazioni(null, IMPOSTAZIONI_INIZIALI), false);
 });
 
 test("testi della chiusura", () => {
@@ -372,9 +435,27 @@ test("dati veri: si trovano con le parole che usa una persona", () => {
   for (const codice of ["LHR", "STN", "LGW"]) assert.ok(tutti("Londra").includes(codice), `Londra: ${codice}`);
 });
 
-test("nome proprio dell'aeroporto: Bergamo resta Bergamo anche nella lista", () => {
+test("citta' con piu' aeroporti: si vede quale", () => {
   const dati = JSON.parse(readFileSync(new URL("../dati/dove_volo.json", import.meta.url), "utf8"));
-  const meta = meteDa(dati, "OTP").find((m) => m.codice === "BGY");
-  assert.equal(meta.citta, "Bergamo");
-  assert.equal(nomeCitta(dati.aeroporti.MXP, "MXP"), "Milano");
+  const nome = (codice) => nomeCitta(dati.aeroporti[codice], codice);
+  assert.equal(nome("MXP"), "Milano Malpensa");
+  assert.equal(nome("LIN"), "Milano Linate");
+  assert.equal(nome("CDG"), "Parigi Charles de Gaulle");
+  assert.equal(nome("LHR"), "Londra Heathrow");
+  assert.equal(nome("TRN"), "Torino");
+  assert.equal(meteDa(dati, "OTP").find((m) => m.codice === "BGY").citta, "Milano Bergamo");
+});
+
+test("dati veri: nessun nome doppio tra aeroporti con voli in partenza", () => {
+  const dati = JSON.parse(readFileSync(new URL("../dati/dove_volo.json", import.meta.url), "utf8"));
+  const partenze = contaPartenze(dati);
+  const visti = new Map();
+  const doppi = [];
+  for (const [codice, aeroporto] of Object.entries(dati.aeroporti)) {
+    if (!partenze[codice]) continue;
+    const nome = nomeCitta(aeroporto, codice);
+    if (visti.has(nome)) doppi.push(`${nome}: ${visti.get(nome)} e ${codice}`);
+    visti.set(nome, codice);
+  }
+  assert.deepEqual(doppi, []);
 });
