@@ -2,7 +2,9 @@
 
 Un sito per costruire viaggi in più tappe con **voli diretti in Europa**: parti da A, voli a B, poi a C, poi torni ad A o a un aeroporto vicino. È il fratello di [Dove_Arrivo](https://github.com/dedavi97/Dove_Arrivo), che fa lo stesso con i treni regionali italiani.
 
-**Stato:** versione 0.6.0, in costruzione. Si sceglie una partenza, si aggiungono tappe e si chiude il giro con un ritorno alla partenza o vicino, con chilometri e tempi nel riepilogo. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
+**Il sito:** [dedavi97.github.io/Dove_Volo](https://dedavi97.github.io/Dove_Volo/)
+
+**Stato:** versione 0.6.0. Si sceglie una partenza, si aggiungono tappe e si chiude il giro con un ritorno alla partenza o vicino, con chilometri e tempi nel riepilogo. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
 
 ## Come funziona
 

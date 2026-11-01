@@ -6,6 +6,7 @@ Ogni punto ha un numero fisso. Peso: P piccolo, M medio, G grande.
 
 | N. | Data | Area | Tipo | Stato | Peso | Descrizione |
 |---|---|---|---|---|---|---|
+| 17 | 2026-11-01 | Sito | Funzione | Aperto | M | Chiudere il giro con una tappa intermedia: quando scegli il rientro, mostrare anche gli aeroporti raggiungibili dall'ultima tappa che hanno un volo diretto verso la base (la partenza o un aeroporto nel raggio). Richiesta di Davide. |
 | 1 | 2026-11-01 | Dati | Verifica | Aperto, tocca a Davide | P | Controllare le rotte di Torino nell'allegato del report sul PC di casa. Non blocca la 0.1.0. |
 | 15 | 2026-11-01 | Dati | Miglioria | Aperto | P | Rotte normali su Wikipedia da aeroporti che omaxim non vede mai (circa 340 nell'ultima prova): oggi sono escluse, perché senza conferma possono essere vecchie. Si perdono alcune rotte vere di aeroporti piccoli. |
 | 16 | 2026-11-01 | Dati | Miglioria | Aperto | P | Filtro "voli sospesi" di Wikipedia: scarta anche pagine con sospensioni parziali (LED, MSQ, DME, LGG...), che perdono solo le stagionali da Wikipedia. Restano alcune stagionali ucraine (11) da pagine che non lo dichiarano. |

@@ -2,7 +2,7 @@
 
 Aggiornato il 1° novembre 2026.
 
-**Versione:** 0.6.0. Si costruisce un giro in più tappe e lo si chiude con un ritorno alla partenza o vicino, con chilometri e tempi nel riepilogo. Ci sono le schede Opzioni, Aiuto e Info, e le stagionali e annunciate vengono anche da Wikipedia. Le versioni previste dal progetto sono tutte fatte.
+**Versione:** 0.6.0. Si costruisce un giro in più tappe e lo si chiude con un ritorno alla partenza o vicino, con chilometri e tempi nel riepilogo. Ci sono le schede Opzioni, Aiuto e Info, e le stagionali e annunciate vengono anche da Wikipedia. Le versioni previste dal progetto sono tutte fatte. Il sito è online su [dedavi97.github.io/Dove_Volo](https://dedavi97.github.io/Dove_Volo/).
 
 | Tappa | Stato |
 |---|---|
@@ -18,8 +18,8 @@ Aggiornato il 1° novembre 2026.
 **Dati attuali:** 628 aeroporti, di cui 423 con la settimana completa, e 18.654 rotte: 11.378 attive, 7.157 stagionali e 119 annunciate. Il file pesa circa 4,8 MB, poco più di 0,3 MB compressi.
 
 **Cosa serve da Davide:**
-- provare il sito con `Apri_Sito.bat`;
-- dare l'ok per pubblicare e attivare GitHub Pages;
-- controllare le rotte di Torino (BACKLOG #1), che non blocca nulla.
+- provare il sito su un telefono vero (BACKLOG #14);
+- controllare le rotte di Torino (BACKLOG #1), che non blocca nulla;
+- aggiornare i dati quando serve con `Aggiorna_Dati.bat`: non si aggiornano da soli.
 
 **Rischio principale:** i dati di omaxim possono fermarsi all'improvviso. Scanner e sito reggono già il caso senza frequenze.

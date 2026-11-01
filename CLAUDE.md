@@ -34,6 +34,11 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 - Blocchi anti-bot: non si aggirano mai. Se una fonte blocca, si segnala e si cerca un'alternativa aperta.
 - Fonti sempre citate nel sito con la licenza, in Informazioni.
 
+## Dove sta
+
+- Sito: https://dedavi97.github.io/Dove_Volo/ (GitHub Pages, ramo `main`, cartella radice). Si aggiorna da solo dopo ogni push.
+- Repo: https://github.com/dedavi97/Dove_Volo
+
 ## Struttura
 
 | Percorso | Cosa contiene |
