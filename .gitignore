@@ -1,0 +1,26 @@
+# Documenti che restano solo sul PC di casa, per scelta di Davide
+HANDOFF_Dove_Volo_v1.md
+docs/REPORT_FONTI.md
+tools/test_fonti/note_report.md
+
+# Dati scaricati dal test delle fonti: pesanti e riscaricabili
+tools/test_fonti/dati_scaricati/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Editor e impostazioni locali
+.vscode/
+.claude/settings.local.json
+
+# Credenziali: non devono mai finire nel repo
+.env
+*.pem
+*.key
+
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store
