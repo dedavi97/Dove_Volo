@@ -24,3 +24,6 @@ __pycache__/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Cache dello scanner: file scaricati, riscaricabili
+cache/

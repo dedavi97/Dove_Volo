@@ -38,14 +38,26 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 
 | Percorso | Cosa contiene |
 |---|---|
+| `VERSIONE` | L'unico punto in cui è scritta la versione |
+| `dati/dove_volo.json` | Il file dati, creato alla prima pubblicazione. Il lato Python lo legge e scrive solo da `scanner/dati_file.py` |
+| `scanner/fonti.py` | Download e cache |
+| `scanner/area.py` | Aeroporti dell'area, eliporti, alias `MLH` |
+| `scanner/settimana.py` | Ricostruzione della settimana |
+| `scanner/costruisci.py` | Storico, stati e contenuto del file |
+| `scanner/differenze.py` | Riepilogo delle differenze |
+| `scanner/pubblica.py` | Commit e push del solo file dati |
+| `scanner/__main__.py` | Il flusso completo |
+| `cache/` | File scaricati dallo scanner, ignorati da git |
 | `tools/test_fonti/` | Test delle fonti della Tappa 1: `test_fonti.py`, `Test_Fonti.bat` |
 | `tools/test_fonti/dati_scaricati/` | File scaricati (156 MB), ignorati da git, riscaricabili |
 | `tests/` | Test del progetto, vedi `tests/README.md` |
 
-Scanner e sito non esistono ancora.
+Il sito non esiste ancora.
 
 ## Comandi
 
+- Aggiornare i dati: `Aggiorna_Dati.bat`. Opzioni: `--prova FILE` scrive in FILE senza toccare git, `--senza-omaxim` produce un file senza frequenze.
+- Test automatici: `Esegui_Test.bat`. Scanner e test usano solo la libreria standard di Python.
 - Test delle fonti: `tools\test_fonti\Test_Fonti.bat`. Aggiungi `--aggiorna` per riscaricare tutto. Usa solo la libreria standard di Python.
 - Per la parte a parole del report si cambia `note_report.md`, non `docs/REPORT_FONTI.md`, che viene riscritto a ogni esecuzione. Senza `note_report.md` (PC di lavoro) lo script scrive solo le tabelle.
 
@@ -122,7 +134,11 @@ Regola generale: `giorni` = 7 caratteri da lunedì a domenica, `1` = vola. Esemp
 }
 ```
 
-- `stato`: `attiva` (presente nella settimana ricostruita), `stagionale` (vedi regola), `annunciata` (su Wikipedia con "begins" e data futura).
+- `stato`: `attiva` (presente nella settimana ricostruita), `stagionale` (vedi regola), `annunciata` (su Wikipedia con "begins" e data futura), `nascosta` (sparita da più di 12 mesi: resta nel file, il sito non la mostra). `nascosta` è il modo in cui si applica la regola stagionali.
+- `citta` viene da omaxim, perché OurAirports dà il comune ("Ferno" per Malpensa). Si importa alla prima esecuzione e poi si conserva dal file precedente; per un aeroporto nuovo si usa OurAirports.
+- `compagnie` in cima può avere un nome vuoto: il sito mostra il codice.
+- `vista_ultima` non supera mai la data di oggi, anche se le giornate di omaxim guardano una settimana avanti.
+- Con `settimana_completa: false` uno `0` in `giorni` vuol dire "non visto", non "non vola".
 - `stagionale_wiki` è separato da `stato`, perché una rotta può volare adesso ed essere stagionale.
 - `periodo` ha `dal` e `al`, da begins, resumes ed ends.
 - `km` si calcola dalle coordinate; `durata_min` è la mediana calcolata dagli orari.
@@ -130,7 +146,7 @@ Regola generale: `giorni` = 7 caratteri da lunedì a domenica, `1` = vola. Esemp
 
 ## Come si ricostruisce la settimana
 
-Per ogni aeroporto e giorno della settimana si prende la giornata più recente che lo contiene, poi si contano i voli per rotta e compagnia. Nel test solo dal 25 ottobre, inizio dell'orario invernale.
+Per ogni aeroporto e giorno della settimana si prende la giornata più recente che lo contiene, poi si contano i voli per rotta e compagnia. Si usano solo le giornate dall'ultimo cambio d'orario (ultima domenica di marzo e di ottobre), al massimo 21; se sono meno di 7, le ultime 7.
 
 Formato di un volo nei file giornalieri: `[meta, compagnia, numero, partenza, arrivo, fuso_partenza, fuso_arrivo]`, con i fusi in minuti. Esempio: `["FRA", "EN", "EN297", "06:00", "07:25", "60", "60"]`.
 
@@ -157,4 +173,8 @@ Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazio
 - **omaxim può fermarsi all'improvviso:** è il lavoro di una sola persona.
 - **Wikipedia:** il modello si chiama sia `Airport-dest-list` sia `Airport destination list`. La mappa da nome pagina a codice IATA passa da Wikidata (proprietà P238).
 - **Wikimedia può rispondere `maxlag`:** bisogna aspettare e riprovare, e non salvare l'errore nella cache.
+- **Rotte assenti da aeroporti con settimana incompleta:** diventano `stagionale` anche se magari volano in un giorno che manca. Nella prima prova 180 aeroporti su 603 non hanno la settimana completa.
+- **Senza omaxim** le rotte conservano lo stato precedente finché non superano i 12 mesi: non sappiamo se volano, quindi non le segniamo come sparite.
+- **Il push di `Aggiorna_Dati.bat`** spinge tutto il ramo: per questo lo scanner si ferma prima di iniziare se ci sono commit non pubblicati o se GitHub è più avanti.
+- **Durate sporche:** nella prima prova 4 rotte su 17.520 hanno una durata assurda rispetto ai km (es. MRV>SUI, 219 km e 1435 minuti). Vengono dalla fonte e non sono corrette.
 - **Cronologia git:** un file già committato resta nella cronologia anche se lo cancelli dopo. Prima di ogni commit controlla che i file solo locali non ci siano.

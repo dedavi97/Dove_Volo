@@ -2,7 +2,7 @@
 
 Un sito per costruire viaggi in più tappe con **voli diretti in Europa**: parti da A, voli a B, poi a C, poi torni ad A o a un aeroporto vicino. È il fratello di [Dove_Arrivo](https://github.com/dedavi97/Dove_Arrivo), che fa lo stesso con i treni regionali italiani.
 
-**Stato:** in costruzione, il sito non esiste ancora. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
+**Stato:** versione 0.1.0, in costruzione. Il programma che raccoglie i dati c'è, il sito non ancora. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
 
 ## Come funzionerà
 
@@ -17,6 +17,12 @@ Un programma Python sul PC raccoglie i dati in un unico file JSON. Il sito è st
 | Rotte stagionali e annunciate | Pagine degli aeroporti su [Wikipedia](https://en.wikipedia.org/) | CC BY-SA |
 
 Dove_Volo è un progetto personale, aperto e gratuito. Scarica solo file pubblici e usa l'API ufficiale di Wikipedia.
+
+## Aggiornare i dati
+
+Serve Python 3, senza installare altro. Avvia `Aggiorna_Dati.bat`: scarica i dati, mostra cosa cambia e chiede "Pubblico? S/N". Se rispondi `S` pubblica solo il file `dati/dove_volo.json`; con qualsiasi altra risposta non cambia nulla.
+
+Per i test automatici avvia `Esegui_Test.bat`.
 
 ## Provare il test delle fonti
 
