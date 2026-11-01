@@ -158,6 +158,56 @@ export function testoTappeTolte({ tolte, da, a }) {
   return `Ho tolto anche ${tolte.join(", ")}: da ${da} a ${a} non c'è un volo diretto.`;
 }
 
+export function distanzaKm(a, b) {
+  const rad = (gradi) => (gradi * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return Math.round(2 * 6371 * Math.asin(Math.sqrt(h)));
+}
+
+// I voli che dall'ultima tappa riportano vicino alla partenza, divisi tra dentro e fuori dal raggio.
+export function trovaRitorni(dati, tappe, raggio) {
+  const partenza = dati.aeroporti[tappe[0]];
+  const mete = meteDa(dati, tappe[tappe.length - 1])
+    .map((meta) => ({
+      ...meta,
+      distanza: meta.codice === tappe[0] ? 0 : distanzaKm(partenza, meta.aeroporto),
+    }))
+    .sort((a, b) => a.distanza - b.distanza || (b.voliSett || 0) - (a.voliSett || 0));
+  return {
+    dentro: mete.filter((m) => m.distanza <= raggio),
+    fuori: mete.filter((m) => m.distanza > raggio),
+  };
+}
+
+// Ogni tratta del giro con compagnie e giorni, piu' i km totali e quanto si atterra lontano dalla partenza.
+export function riepilogoGiro(dati, tappe) {
+  const tratte = [];
+  for (let i = 1; i < tappe.length; i++) {
+    const meta = meteDa(dati, tappe[i - 1]).find((m) => m.codice === tappe[i]) || null;
+    tratte.push({ da: tappe[i - 1], a: tappe[i], cittaDa: nomeCitta(dati.aeroporti[tappe[i - 1]], tappe[i - 1]), meta });
+  }
+  const ultima = tappe[tappe.length - 1];
+  return {
+    tratte,
+    kmTotali: tratte.reduce((totale, t) => totale + (t.meta?.km || 0), 0),
+    distanzaFinale: ultima === tappe[0] ? 0 : distanzaKm(dati.aeroporti[tappe[0]], dati.aeroporti[ultima]),
+  };
+}
+
+export function testoRitorni(numero, raggio) {
+  return `${numero === 1 ? "1 ritorno" : `${numero} ritorni`} entro ${raggio} km`;
+}
+
+export function testoVicino(distanza, citta) {
+  return distanza === 0 ? `Torna a ${citta}` : `A ${testoKm(distanza)} da ${citta}`;
+}
+
+export function testoTratte(numero) {
+  return numero === 1 ? "1 tratta" : `${numero} tratte`;
+}
+
 export function filtraMete(mete, filtri) {
   return mete.filter((meta) => {
     if (filtri.paese && meta.aeroporto.paese !== filtri.paese) return false;

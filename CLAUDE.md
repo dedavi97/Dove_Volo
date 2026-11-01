@@ -43,7 +43,7 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 | `sito/logica.js` | Ricerca, mete, filtri, testi e nomi italiani, senza mappa né pagina: è la parte testata |
 | `sito/app.js` | Mappa, lista, ricerca, pannello |
 | `sito/stile.css` | Stile: i colori stanno solo qui, come variabili |
-| `sito/europa.json` | Sfondo della mappa, creato da `tools/prepara_mappa.py` |
+| `sito/mondo.json` | Sfondo della mappa, il mondo intero, creato da `tools/prepara_mappa.py` |
 | `sito/vendor/leaflet/` | Leaflet 1.9.4, salvato nel sito con la sua licenza |
 | `tools/sito_locale.py` | Il server per provare il sito, usato da `Apri_Sito.bat` |
 | `dati/dove_volo.json` | Il file dati, creato alla prima pubblicazione. Il lato Python lo legge e scrive solo da `scanner/dati_file.py` |
@@ -179,6 +179,12 @@ Come è stato realizzato, oltre il disegno:
 - **Togliere una tappa:** resta un giro di soli voli diretti. Se le due tappe vicine non hanno un volo diretto, da lì in poi si tagliano e il sito lo scrive (`togliTappa` in `sito/logica.js`). Togliendo la partenza, la tappa dopo diventa partenza.
 - Scegliere un aeroporto dal campo Partenza inizia un giro nuovo. Ricomincia e la ✕ del campo azzerano tutto, senza chiedere conferma.
 - Con il dito niente pulsanti + e − sulla mappa: si ingrandisce con due dita.
+- **Fasi del giro** (`stato.fase` in `sito/app.js`): `tappe` si aggiungono tappe, `ritorno` si sceglie come tornare, `chiuso` c'è il riepilogo. Il ritorno è l'ultima voce di `stato.tappe`.
+- "Chiudi il giro" compare da due tappe in su. Se l'ultima tappa è già la partenza (TRN > OTP > TRN) si passa subito al riepilogo.
+- Togliere una tappa da un giro chiuso riporta alla scelta del ritorno; con meno di due tappe si torna ad aggiungere tappe.
+- La lista dei ritorni mostra solo quelli nel raggio. Quelli fuori sono solo in mappa, grigi e non selezionabili. Le stagionali restano tratteggiate anche in verde e in grigio.
+- Il raggio parte da 150 km e dura finché la pagina è aperta. Salvarlo è compito delle Impostazioni (0.6.0).
+- Il riepilogo non confronta i giorni delle tratte: è rimandato alla v2 e il sito lo scrive.
 
 Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazioni (versione, changelog in parole semplici, fonti e licenze, data dei dati). Stati vuoti che spiegano il perché: "Da qui nessun volo diretto nell'area", "Nessun ritorno entro 150 km: prova ad allargare il raggio".
 
@@ -193,7 +199,7 @@ Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazio
 - **Senza omaxim** le rotte conservano lo stato precedente finché non superano i 12 mesi: non sappiamo se volano, quindi non le segniamo come sparite.
 - **Il push di `Aggiorna_Dati.bat`** spinge tutto il ramo: per questo lo scanner si ferma prima di iniziare se ci sono commit non pubblicati o se GitHub è più avanti.
 - **Durate sporche:** nella prima prova 4 rotte su 17.520 hanno una durata assurda rispetto ai km (es. MRV>SUI, 219 km e 1435 minuti). Vengono dalla fonte e non sono corrette.
-- **Sfondo mappa:** CARTO ora chiede una chiave e stampa "API KEY REQUIRED" sulle tessere. Per questo lo sfondo è Natural Earth salvato nel sito.
+- **Sfondo mappa:** CARTO ora chiede una chiave e stampa "API KEY REQUIRED" sulle tessere. Per questo lo sfondo è Natural Earth salvato nel sito: il mondo intero, perché a Davide una mappa tagliata ai bordi non va bene. Non ha nomi di città.
 - **`maxBounds` di Leaflet:** se i limiti sono più piccoli di ciò che si vede allo zoom minimo, Leaflet ricentra la mappa e rovina l'inquadratura, soprattutto da telefono. `LIMITI_MAPPA` deve restare larga.
 - **Un solo canvas:** confini, archi e punti usano lo stesso `disegno`. Così i confini restano sotto e non coprono i punti.
 - **Provare i tocchi con Chrome via CDP:** `Input.synthesizeTapGesture` non genera il clic, nemmeno su un link. Si usa `Input.dispatchTouchEvent`, con `touchStart` e `touchEnd`.

@@ -4,9 +4,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
-  cercaAeroporti, contaPartenze, controllaDati, filtraMete, meteDa, nomeCitta, nomePaese, normalizza,
-  paesiDelleMete, puntiArco, rottaVisibile, testoData, testoDurata, testoGiorni, testoKm, testoMete,
-  testoTappeTolte, togliTappa,
+  cercaAeroporti, contaPartenze, controllaDati, distanzaKm, filtraMete, meteDa, nomeCitta, nomePaese, normalizza,
+  paesiDelleMete, puntiArco, riepilogoGiro, rottaVisibile, testoData, testoDurata, testoGiorni, testoKm, testoMete,
+  testoRitorni, testoTappeTolte, testoTratte, testoVicino, togliTappa, trovaRitorni,
 } from "../sito/logica.js";
 
 function aeroporto(citta, paese, nome = `${citta} Airport`, lat = 45, lon = 9) {
@@ -232,6 +232,110 @@ test("il giro originale non viene toccato", () => {
   const tappe = ["TRN", "OTP", "MAD"];
   togliTappa(GIRO, tappe, 1);
   assert.deepEqual(tappe, ["TRN", "OTP", "MAD"]);
+});
+
+const CHIUSURA = {
+  ...DATI,
+  aeroporti: {
+    TRN: aeroporto("Turin", "IT", "Turin Airport", 45.2, 7.65),
+    MXP: aeroporto("Milan", "IT", "Malpensa", 45.63, 8.72),
+    BGY: aeroporto("Milan", "IT", "Il Caravaggio", 45.67, 9.7),
+    GOA: aeroporto("Genoa", "IT", "Genova", 44.41, 8.84),
+    OTP: aeroporto("Bucharest", "RO", "Otopeni", 44.57, 26.08),
+    MAD: aeroporto("Madrid", "ES", "Barajas", 40.47, -3.56),
+  },
+  rotte: [
+    rotta("TRN", "OTP", "attiva", [{ iata: "W4", voli_sett: 4, giorni: "1010101" }], { km: 1452, durata_min: 145 }),
+    rotta("OTP", "TRN", "attiva", [{ iata: "W4", voli_sett: 4, giorni: "1010101" }], { km: 1452, durata_min: 145 }),
+    rotta("OTP", "BGY", "attiva", [{ iata: "FR", voli_sett: 28, giorni: "1111111" }], { km: 1290, durata_min: 130 }),
+    rotta("OTP", "MXP", "stagionale", [{ iata: "FR", voli_sett: null, giorni: null }], { km: 1370, durata_min: 140 }),
+    rotta("OTP", "MAD", "attiva", [{ iata: "FR", voli_sett: 7, giorni: "1111111" }], { km: 2470, durata_min: 230 }),
+    rotta("OTP", "GOA", "nascosta", [{ iata: "FR", voli_sett: null, giorni: null }], { km: 1400, durata_min: 140 }),
+  ],
+};
+
+test("distanza: Torino-Bucarest circa 1450 km, da se' a se' zero", () => {
+  const { TRN, OTP } = CHIUSURA.aeroporti;
+  const km = distanzaKm(TRN, OTP);
+  assert.ok(km > 1430 && km < 1470, String(km));
+  assert.equal(distanzaKm(TRN, TRN), 0);
+  assert.equal(distanzaKm(TRN, OTP), distanzaKm(OTP, TRN));
+});
+
+test("ritorni: dentro e fuori dal raggio, dal piu' vicino alla partenza", () => {
+  const { dentro, fuori } = trovaRitorni(CHIUSURA, ["TRN", "OTP"], 150);
+  assert.deepEqual(dentro.map((m) => m.codice), ["TRN", "MXP"]);
+  assert.deepEqual(fuori.map((m) => m.codice), ["BGY", "MAD"]);
+  assert.equal(dentro[0].distanza, 0);
+  assert.ok(dentro[1].distanza > 50 && dentro[1].distanza < 150);
+});
+
+test("ritorni: raggio zero vale solo la partenza, raggio grande prende di piu'", () => {
+  assert.deepEqual(trovaRitorni(CHIUSURA, ["TRN", "OTP"], 0).dentro.map((m) => m.codice), ["TRN"]);
+  assert.deepEqual(trovaRitorni(CHIUSURA, ["TRN", "OTP"], 200).dentro.map((m) => m.codice), ["TRN", "MXP", "BGY"]);
+});
+
+test("ritorni: la distanza al limite del raggio e' dentro", () => {
+  const { MXP, TRN } = CHIUSURA.aeroporti;
+  const esatta = distanzaKm(TRN, MXP);
+  assert.ok(trovaRitorni(CHIUSURA, ["TRN", "OTP"], esatta).dentro.some((m) => m.codice === "MXP"));
+  assert.ok(!trovaRitorni(CHIUSURA, ["TRN", "OTP"], esatta - 1).dentro.some((m) => m.codice === "MXP"));
+});
+
+test("ritorni: rotte nascoste escluse", () => {
+  const { dentro, fuori } = trovaRitorni(CHIUSURA, ["TRN", "OTP"], 400);
+  assert.ok(![...dentro, ...fuori].some((m) => m.codice === "GOA"));
+});
+
+test("ritorni: un aeroporto senza voli non rompe nulla", () => {
+  assert.deepEqual(trovaRitorni(CHIUSURA, ["OTP", "MXP"], 150), { dentro: [], fuori: [] });
+});
+
+test("riepilogo: tratte, compagnie, km totali e arrivo vicino alla partenza", () => {
+  const riepilogo = riepilogoGiro(CHIUSURA, ["TRN", "OTP", "BGY"]);
+  assert.equal(riepilogo.tratte.length, 2);
+  assert.deepEqual(riepilogo.tratte.map((t) => [t.da, t.a]), [["TRN", "OTP"], ["OTP", "BGY"]]);
+  assert.equal(riepilogo.tratte[1].cittaDa, "Bucarest");
+  assert.equal(riepilogo.tratte[1].meta.citta, "Bergamo");
+  assert.equal(riepilogo.tratte[1].meta.voliSett, 28);
+  assert.equal(riepilogo.kmTotali, 1452 + 1290);
+  assert.equal(riepilogo.distanzaFinale, distanzaKm(CHIUSURA.aeroporti.TRN, CHIUSURA.aeroporti.BGY));
+});
+
+test("riepilogo: tornando alla partenza la distanza e' zero", () => {
+  assert.equal(riepilogoGiro(CHIUSURA, ["TRN", "OTP", "TRN"]).distanzaFinale, 0);
+});
+
+test("riepilogo: una tratta senza frequenze resta vuota, mai zero", () => {
+  const { meta } = riepilogoGiro(CHIUSURA, ["TRN", "OTP", "MXP"]).tratte[1];
+  assert.equal(meta.voliSett, null);
+  assert.equal(meta.giorni, null);
+  assert.equal(meta.stato, "stagionale");
+});
+
+test("riepilogo: una tratta sparita dai dati non rompe nulla", () => {
+  const riepilogo = riepilogoGiro(CHIUSURA, ["TRN", "MAD"]);
+  assert.equal(riepilogo.tratte[0].meta, null);
+  assert.equal(riepilogo.kmTotali, 0);
+});
+
+test("testi della chiusura", () => {
+  assert.equal(testoRitorni(1, 150), "1 ritorno entro 150 km");
+  assert.equal(testoRitorni(3, 0), "3 ritorni entro 0 km");
+  assert.equal(testoVicino(0, "Torino"), "Torna a Torino");
+  assert.equal(testoVicino(123, "Torino"), "A 123 km da Torino");
+  assert.equal(testoTratte(1), "1 tratta");
+  assert.equal(testoTratte(4), "4 tratte");
+});
+
+test("dati veri: l'esempio del progetto si chiude", () => {
+  const dati = JSON.parse(readFileSync(new URL("../dati/dove_volo.json", import.meta.url), "utf8"));
+  const { dentro } = trovaRitorni(dati, ["TRN", "OTP", "TBS"], 150);
+  assert.ok(dentro.some((m) => m.codice === "BGY" || m.codice === "MXP"), dentro.map((m) => m.codice).join());
+  assert.ok(dentro.every((m) => m.distanza <= 150));
+  const riepilogo = riepilogoGiro(dati, ["TRN", "OTP", "TBS", dentro[0].codice]);
+  assert.ok(riepilogo.tratte.every((t) => t.meta));
+  assert.ok(riepilogo.kmTotali > 3000);
 });
 
 test("controllo dei dati: file sbagliati rifiutati", () => {

@@ -2,6 +2,16 @@
 
 Cosa cambia a ogni versione, in parole semplici.
 
+## 0.4.0 · 1° novembre 2026
+
+Il giro ora si chiude.
+
+- Con almeno due tappe compare "Chiudi il giro": un cursore sceglie quanto lontano dalla partenza puoi atterrare, da 0 a 400 km, con un cerchio verde sulla mappa.
+- I voli di ritorno nel raggio sono verdi e in lista, con la distanza dalla partenza; gli altri sono grigi. Si sceglie col pulsante "Scegli" o toccando il punto verde.
+- Il riepilogo mostra ogni tratta con compagnie, voli a settimana, giorni e distanza, più i km totali e dove atterri rispetto alla partenza.
+- Dal riepilogo si può cambiare il ritorno, togliere una tappa o aggiungerne altre.
+- Lo sfondo della mappa è il mondo intero, non più solo la zona delle rotte.
+
 ## 0.3.0 · 1° novembre 2026
 
 Ora si costruisce il giro.

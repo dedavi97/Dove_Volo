@@ -42,8 +42,10 @@
     <div id="mappa" class="mappa" aria-label="Mappa delle rotte"></div>
 
     <aside class="legenda" aria-label="Legenda">
-      <span class="voce-legenda"><i class="linea linea-attiva"></i>Attiva</span>
-      <span class="voce-legenda"><i class="linea linea-stagionale"></i>Stagionale</span>
+      <span id="legenda-attiva" class="voce-legenda"><i class="linea linea-attiva"></i>Attiva</span>
+      <span id="legenda-stagionale" class="voce-legenda"><i class="linea linea-stagionale"></i>Stagionale</span>
+      <span id="legenda-dentro" class="voce-legenda" hidden><i class="linea linea-dentro"></i>Nel raggio</span>
+      <span id="legenda-fuori" class="voce-legenda" hidden><i class="linea linea-fuori"></i>Fuori raggio</span>
       <span id="legenda-giro" class="voce-legenda" hidden><i class="linea linea-giro"></i>Il tuo giro</span>
     </aside>
 
@@ -60,10 +62,23 @@
           <select id="filtro-paese"></select>
         </label>
       </div>
+      <button id="chiudi-giro" class="azione" type="button" hidden>Chiudi il giro</button>
+      <div id="ritorno" class="ritorno" hidden>
+        <label for="raggio" id="raggio-testo" class="raggio-testo"></label>
+        <input id="raggio" class="raggio" type="range" min="0" max="400" step="10" value="150">
+        <button id="altre-tappe" class="link" type="button">Aggiungi altre tappe</button>
+      </div>
       <p id="avviso" class="avviso" hidden></p>
       <div class="scorrimento">
         <p id="vuoto" class="vuoto" hidden></p>
         <ul id="lista" class="lista"></ul>
+        <section id="riepilogo" class="riepilogo" aria-label="Riepilogo del giro" hidden>
+          <h2 id="riepilogo-titolo"></h2>
+          <ol id="riepilogo-tratte" class="tratte"></ol>
+          <p id="riepilogo-fine" class="riepilogo-fine"></p>
+          <p class="riepilogo-nota">I giorni delle tratte non vengono confrontati: controlla che si incastrino prima di prenotare.</p>
+          <button id="cambia-ritorno" class="azione" type="button" hidden>Cambia il ritorno</button>
+        </section>
         <footer id="fonti" class="fonti"></footer>
       </div>
     </section>
