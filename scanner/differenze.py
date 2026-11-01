@@ -5,7 +5,7 @@ MAX_ESEMPI = 15
 
 
 def _firma(rotta):
-    return sorted((c["iata"], c.get("voli_sett"), c.get("giorni")) for c in rotta["compagnie"])
+    return sorted(str((c["iata"], c.get("nome"), c.get("voli_sett"), c.get("giorni"))) for c in rotta["compagnie"])
 
 
 def confronta(precedente, nuovi):
@@ -37,7 +37,7 @@ def riepilogo(precedente, nuovi, avvisi):
     righe = [
         f"Aeroporti: {len(aeroporti)} (settimana completa: {completi})",
         f"Rotte: {len(nuovi['rotte'])} = attive {stati['attiva']}, stagionali {stati['stagionale']}, "
-        f"nascoste {stati['nascosta']}",
+        f"annunciate {stati['annunciata']}, nascoste {stati['nascosta']}",
     ]
     if not con_voli:
         righe.append("ATTENZIONE: questo file non ha frequenze, il sito mostrera' solo le compagnie.")

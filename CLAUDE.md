@@ -51,6 +51,7 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 | `scanner/area.py` | Aeroporti dell'area, eliporti, alias `MLH` |
 | `scanner/settimana.py` | Ricostruzione della settimana |
 | `scanner/costruisci.py` | Storico, stati e contenuto del file |
+| `scanner/wikipedia.py` | Lettura delle pagine degli aeroporti e riassunto per rotta |
 | `scanner/differenze.py` | Riepilogo delle differenze |
 | `scanner/pubblica.py` | Commit e push del solo file dati |
 | `scanner/__main__.py` | Il flusso completo |
@@ -80,11 +81,16 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 8. **Niente elicotteri:** fuori tutte le rotte da e per gli eliporti, Ceuta compresa, vedi sotto.
 9. **Compagnie senza nome** (ATV, B0, DCT, FNA, GPX, HBR, HTY, LID, LTR, TOM): per ora si mostra il codice.
 
-### Come si applicano prima della 0.6.0
+### Come si combinano omaxim e Wikipedia (dalla 0.6.0)
 
-Wikipedia entra nello scanner solo con la 0.6.0 (confermato da Davide). Quindi:
-- la 0.1.0 prova la tolleranza con un file **senza frequenze**; il file con OurAirports + Wikipedia si prova dalla 0.6.0;
-- fino alla 0.6.0 una rotta è `stagionale` solo se vista negli ultimi 12 mesi, e lo stato `annunciata` non esiste ancora.
+Per una rotta **che non vola** nella settimana ricostruita:
+- `begins` o `resumes` con data futura, nessuna compagnia normale o stagionale: `annunciata`.
+- "Normale" su Wikipedia: `attiva` senza frequenze, ma solo se omaxim manca del tutto o se a quell'aeroporto mancano dei giorni. Con la settimana completa la rotta non vola. Se omaxim non ha mai visto l'aeroporto non c'è conferma, quindi non entra: è una scelta prudente.
+- Seasonal su Wikipedia, o vista negli ultimi 12 mesi: `stagionale`. Altrimenti `nascosta`.
+
+Una rotta **che vola** è sempre `attiva`; se è Seasonal ha anche `stagionale_wiki: true`. Una compagnia che vola tutto l'anno batte la stagione delle altre. I charter non contano.
+
+Se Wikipedia non risponde si conserva ciò che c'era: `stagionale_wiki` e `periodo` restano, e gli annunci restano finché la data non passa. Il flag `--senza-wikipedia` la salta.
 
 ### Storico iniziale: due dettagli
 
@@ -144,6 +150,8 @@ Regola generale: `giorni` = 7 caratteri da lunedì a domenica, `1` = vola. Esemp
 - `stato`: `attiva` (presente nella settimana ricostruita), `stagionale` (vedi regola), `annunciata` (su Wikipedia con "begins" e data futura), `nascosta` (sparita da più di 12 mesi: resta nel file, il sito non la mostra). `nascosta` è il modo in cui si applica la regola stagionali.
 - `citta` viene da omaxim, perché OurAirports dà il comune ("Ferno" per Malpensa). Si importa alla prima esecuzione e poi si conserva dal file precedente; per un aeroporto nuovo si usa OurAirports.
 - `compagnie` in cima può avere un nome vuoto: il sito mostra il codice.
+- Una compagnia in una rotta può avere `iata: null` e `nome`: Wikipedia dà i nomi, non i codici. Il codice c'è solo se il nome è già nell'elenco.
+- `vista_ultima` è vuota per le rotte viste solo su Wikipedia (`fonte: "wikipedia"`).
 - `vista_ultima` non supera mai la data di oggi, anche se le giornate di omaxim guardano una settimana avanti.
 - Con `settimana_completa: false` uno `0` in `giorni` vuol dire "non visto", non "non vola".
 - `stagionale_wiki` è separato da `stato`, perché una rotta può volare adesso ed essere stagionale.
@@ -200,6 +208,8 @@ Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazio
 - **omaxim può fermarsi all'improvviso:** è il lavoro di una sola persona.
 - **Wikipedia:** il modello si chiama sia `Airport-dest-list` sia `Airport destination list`. La mappa da nome pagina a codice IATA passa da Wikidata (proprietà P238).
 - **Wikimedia può rispondere `maxlag`:** bisogna aspettare e riprovare, e non salvare l'errore nella cache.
+- **Wikipedia può elencare rotte morte.** La pagina di Kiev dice "voli sospesi dal 2022" e poi le elenca tutte: senza controllo erano 183 rotte ucraine attive. Per questo `leggi_pagina` scarta le pagine che lo dichiarano prima della tabella, e un test verifica che nessuna rotta ucraina sia attiva. Il filtro è prudente, vedi BACKLOG #16.
+- **Richieste a Wikipedia:** una a Wikidata per tutti i codici, poi le pagine a blocchi da 20, circa due minuti. Il risultato vale per la giornata in `cache/wikipedia_<data>.json`: per rifare la lettura va cancellato.
 - **Rotte assenti da aeroporti con settimana incompleta:** diventano `stagionale` anche se magari volano in un giorno che manca. Nella prima prova 180 aeroporti su 603 non hanno la settimana completa.
 - **Senza omaxim** le rotte conservano lo stato precedente finché non superano i 12 mesi: non sappiamo se volano, quindi non le segniamo come sparite.
 - **Il push di `Aggiorna_Dati.bat`** spinge tutto il ramo: per questo lo scanner si ferma prima di iniziare se ci sono commit non pubblicati o se GitHub è più avanti.

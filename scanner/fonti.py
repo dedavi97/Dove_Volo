@@ -21,6 +21,9 @@ class Scaricatore:
         self.cache = cache
         self.ua = UA.format(versione)
 
+    def leggi(self, url):
+        return self._leggi(url)
+
     def _leggi(self, url, secondi=180):
         richiesta = urllib.request.Request(url, headers={"User-Agent": self.ua})
         with urllib.request.urlopen(richiesta, timeout=secondi) as risposta:

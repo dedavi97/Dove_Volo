@@ -11,6 +11,7 @@ DATA_STORICO = "2026-10-04"
 FONTE_OMAXIM = {"nome": "omaxim/airline-route-data", "url": "https://github.com/omaxim/airline-route-data",
                 "licenza": "Nessuna licenza indicata"}
 FONTE_OURAIRPORTS = {"nome": "OurAirports", "url": "https://ourairports.com/data/", "licenza": "Pubblico dominio"}
+FONTE_WIKIPEDIA = {"nome": "Wikipedia", "url": "https://en.wikipedia.org/", "licenza": "CC BY-SA"}
 
 
 def km_tra(a, b):
@@ -66,21 +67,71 @@ def importa_storico(file_omaxim, area):
 
 def _stato_assente(rotta, oggi):
     """Regola stagionali: una rotta assente resta visibile se Wikipedia o gli ultimi 12 mesi la sostengono."""
-    if rotta.get("stagionale_wiki") or entro_12_mesi(rotta["vista_ultima"], oggi):
+    vista = rotta["vista_ultima"]
+    if rotta.get("stagionale_wiki") or (vista and entro_12_mesi(vista, oggi)):
         return "stagionale"
     return "nascosta"
 
 
+def _periodo_valido(periodo, oggi):
+    """Un periodo gia' finito non serve piu'."""
+    if periodo and periodo.get("al") and periodo["al"] < oggi.isoformat():
+        return None
+    return periodo
+
+
+def _compagnie_da_wikipedia(nomi_wiki, nomi):
+    """Wikipedia da' i nomi, non i codici: il codice c'e' solo se il nome e' gia' conosciuto."""
+    per_nome = {n.lower(): s for s, n in nomi.items() if n}
+    compagnie = []
+    for nome in nomi_wiki:
+        sigla = per_nome.get(nome.lower())
+        voce = {"iata": sigla, "voli_sett": None, "giorni": None}
+        if not sigla:
+            voce["nome"] = nome
+        compagnie.append(voce)
+    return compagnie
+
+
 def _senza_frequenze(compagnie):
-    return [{"iata": c["iata"], "voli_sett": None, "giorni": None} for c in compagnie]
+    return [{**c, "voli_sett": None, "giorni": None} for c in compagnie]
 
 
-def costruisci(area, conosciuti, giornate, precedente, storico, oggi):
+def _wikipedia_basta(settimana, origine):
+    """Una rotta "normale" solo su Wikipedia e' attiva se omaxim manca, o se all'aeroporto mancano dei giorni.
+
+    Se omaxim ha la settimana completa la rotta non vola. Se non ha mai visto l'aeroporto non c'e' conferma:
+    le pagine possono elencare rotte ferme da anni.
+    """
+    if not settimana:
+        return True
+    copertura = settimana["copertura"].get(origine)
+    return bool(copertura) and not copertura["completa"]
+
+
+def _stato_senza_voli(voce, vecchia, wiki, settimana, oggi):
+    """Lo stato di una rotta che non vola nei dati di questa settimana."""
+    if wiki:
+        if wiki["annunciata"]:
+            return "annunciata"
+        if wiki["normale"] and _wikipedia_basta(settimana, voce["da"]):
+            return "attiva"
+    stato = _stato_assente(voce, oggi)
+    if vecchia and not settimana and not wiki and stato == "stagionale" and vecchia["stato"] != "nascosta":
+        # Senza omaxim e senza Wikipedia non sappiamo nulla: resta com'era finche' non invecchia troppo.
+        return vecchia["stato"]
+    if vecchia and vecchia["stato"] == "annunciata" and wiki is None and (vecchia.get("periodo") or {}).get("dal", "") > oggi.isoformat():
+        return "annunciata"
+    return stato
+
+
+def costruisci(area, conosciuti, giornate, precedente, storico, oggi, rotte_wiki=None):
     """Produce il contenuto del file dati.
 
     giornate:   file giornalieri di omaxim, o None se omaxim non e' disponibile
     precedente: il file dati precedente, o None alla prima esecuzione
     storico:    risultato di importa_storico, usato solo se non c'e' un file precedente
+    rotte_wiki: riassunti da Wikipedia per rotta, o None se Wikipedia non e' disponibile
     Restituisce (dati, avvisi).
     """
     avvisi = []
@@ -104,21 +155,36 @@ def costruisci(area, conosciuti, giornate, precedente, storico, oggi):
 
     rotte = []
     correnti = settimana["rotte"] if settimana else {}
-    for chiave in sorted(set(vecchie) | set(correnti)):
-        vecchia, attuale = vecchie.get(chiave), correnti.get(chiave)
+    copertura = settimana["copertura"] if settimana else {}
+    wiki_disponibile = rotte_wiki is not None
+    da_wiki = rotte_wiki or {}
+    chiavi = set(vecchie) | set(correnti)
+    for chiave, wiki in da_wiki.items():
+        # Una rotta nuova entra solo se dice qualcosa che omaxim non puo' sapere.
+        if wiki["annunciata"] or wiki["stagionale"] or _wikipedia_basta(settimana, chiave[0]):
+            chiavi.add(chiave)
+    for chiave in sorted(chiavi):
+        vecchia, attuale, wiki = vecchie.get(chiave), correnti.get(chiave), da_wiki.get(chiave)
+        if wiki_disponibile:
+            stagionale_wiki = bool(wiki and wiki["stagionale"])
+            periodo = wiki["periodo"] if wiki else None
+        else:
+            stagionale_wiki = bool(vecchia and vecchia.get("stagionale_wiki"))
+            periodo = vecchia.get("periodo") if vecchia else None
         voce = {
             "da": chiave[0], "a": chiave[1], "stato": None,
-            "stagionale_wiki": bool(vecchia and vecchia.get("stagionale_wiki")),
+            "stagionale_wiki": stagionale_wiki,
             "km": km_tra(area[chiave[0]], area[chiave[1]]),
             "durata_min": vecchia.get("durata_min") if vecchia else None,
             "compagnie": [],
-            "periodo": vecchia.get("periodo") if vecchia else None,
-            "vista_ultima": vecchia["vista_ultima"] if vecchia else data_vista,
-            "fonte": "omaxim",
+            "periodo": _periodo_valido(periodo, oggi),
+            "vista_ultima": vecchia["vista_ultima"] if vecchia else None,
+            "fonte": (vecchia or {}).get("fonte", "wikipedia"),
         }
         if attuale:
             voce["stato"] = "attiva"
             voce["vista_ultima"] = data_vista
+            voce["fonte"] = "omaxim"
             if attuale["durate"]:
                 voce["durata_min"] = int(statistics.median(attuale["durate"]))
             voce["compagnie"] = [
@@ -126,14 +192,12 @@ def costruisci(area, conosciuti, giornate, precedente, storico, oggi):
                 for sigla, c in sorted(attuale["compagnie"].items())
             ]
         else:
-            voce["compagnie"] = _senza_frequenze(vecchia["compagnie"])
-            voce["stato"] = _stato_assente(voce, oggi)
-            if not settimana and voce["stato"] == "stagionale" and vecchia["stato"] != "nascosta":
-                # Senza omaxim non sappiamo se la rotta vola: resta com'era finche' non invecchia troppo.
-                voce["stato"] = vecchia["stato"]
+            voce["compagnie"] = _senza_frequenze(vecchia["compagnie"]) if vecchia else []
+            if not voce["compagnie"] and wiki:
+                voce["compagnie"] = _compagnie_da_wikipedia(wiki["compagnie"], nomi)
+            voce["stato"] = _stato_senza_voli(voce, vecchia, wiki, settimana, oggi)
         rotte.append(voce)
 
-    copertura = settimana["copertura"] if settimana else {}
     aeroporti = {}
     for codice in sorted({r["da"] for r in rotte} | {r["a"] for r in rotte}):
         c = copertura.get(codice)
@@ -142,8 +206,10 @@ def costruisci(area, conosciuti, giornate, precedente, storico, oggi):
                              "settimana_dal": c["dal"] if c else None,
                              "settimana_completa": c["completa"] if c else False}
 
-    sigle = sorted({c["iata"] for r in rotte for c in r["compagnie"]})
+    sigle = sorted({c["iata"] for r in rotte for c in r["compagnie"] if c["iata"]})
     fonti = [{**FONTE_OURAIRPORTS, "data": oggi.isoformat()}]
+    if wiki_disponibile:
+        fonti.insert(0, {**FONTE_WIKIPEDIA, "data": oggi.isoformat()})
     if settimana:
         fonti.insert(0, {**FONTE_OMAXIM, "data": settimana["ultima"]})
 

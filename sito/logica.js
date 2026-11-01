@@ -83,6 +83,10 @@ export function contaPartenze(dati) {
   return conteggi;
 }
 
+const INGLESE_DA_ITALIANO = Object.fromEntries(
+  Object.entries(NOMI_ITALIANI).map(([inglese, italiano]) => [normalizza(italiano), inglese]),
+);
+
 function punteggioRicerca(richiesta, codice, aeroporto) {
   if (normalizza(codice) === richiesta) return 0;
   const citta = [nomeCitta(aeroporto, codice), NOMI_ITALIANI[aeroporto.citta], aeroporto.citta].map(normalizza);
@@ -91,6 +95,9 @@ function punteggioRicerca(richiesta, codice, aeroporto) {
   if (citta.some((c) => c.includes(` ${richiesta}`))) return 3;
   const nome = normalizza(aeroporto.nome);
   if (nome.startsWith(richiesta) || nome.includes(` ${richiesta}`)) return 4;
+  // "Torino" deve trovare "Turin Airport" anche se il dato sulla citta' manca o e' il nome del comune.
+  const inglese = normalizza(INGLESE_DA_ITALIANO[richiesta]);
+  if (inglese && (nome.startsWith(inglese) || nome.includes(` ${inglese}`))) return 4;
   if (citta.some((c) => c.includes(richiesta)) || nome.includes(richiesta)) return 5;
   return null;
 }
@@ -133,7 +140,7 @@ export function meteDa(dati, partenza) {
     if (rotta.da !== partenza || !visibile(rotta)) continue;
     const aeroporto = dati.aeroporti[rotta.a];
     const compagnie = rotta.compagnie
-      .map((c) => ({ ...c, nome: dati.compagnie[c.iata] || c.iata }))
+      .map((c) => ({ ...c, nome: dati.compagnie[c.iata] || c.nome || c.iata || "Compagnia non indicata" }))
       .sort(perVoliDecrescenti);
     mete.push({
       codice: rotta.a,
@@ -146,6 +153,8 @@ export function meteDa(dati, partenza) {
       voliSett: sommaVoli(compagnie),
       giorni: unisciGiorni(compagnie),
       vistaUltima: rotta.vista_ultima,
+      stagionaleWiki: Boolean(rotta.stagionale_wiki),
+      periodo: rotta.periodo || null,
     });
   }
   return mete.sort((a, b) =>
@@ -217,6 +226,26 @@ export function riepilogoGiro(dati, tappe) {
     durataCompleta: tratte.every((t) => t.meta?.durata),
     distanzaFinale: ultima === tappe[0] ? 0 : distanzaKm(dati.aeroporti[tappe[0]], dati.aeroporti[ultima]),
   };
+}
+
+function testoPeriodo(periodo) {
+  if (!periodo) return "";
+  const { dal, al } = periodo;
+  if (dal && al) return `dal ${testoData(dal)} al ${testoData(al)}`;
+  if (dal) return `dal ${testoData(dal)}`;
+  return al ? `fino al ${testoData(al)}` : "";
+}
+
+// Cosa dire di una rotta che non e' semplicemente attiva tutto l'anno. Vuoto se non c'e' nulla da dire.
+export function testoStato(meta) {
+  const periodo = testoPeriodo(meta.periodo);
+  if (meta.stato === "annunciata") return periodo ? `annunciata, ${periodo}` : "annunciata";
+  if (meta.stato === "attiva") {
+    if (!meta.stagionaleWiki && !periodo) return "";
+    return ["stagionale, vola adesso", periodo].filter(Boolean).join(", ");
+  }
+  if (periodo) return `stagionale, ${periodo}`;
+  return meta.vistaUltima ? `stagionale, vista il ${testoData(meta.vistaUltima)}` : "stagionale";
 }
 
 export function testoRitorni(numero, raggio) {

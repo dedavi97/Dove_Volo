@@ -17,6 +17,19 @@ Serve solo Python: `python -m unittest discover -s tests -t .`
 | Differenze | Rotte nuove, sparite, tornate e cambiate, avviso per un calo forte |
 | Pubblica | Con un vero git e un finto GitHub: esce solo il file dati, e si blocca se pubblicherebbe altro |
 
+## Wikipedia: `test_wikipedia.py`
+
+Serve solo Python, e finge le risposte di Wikipedia:
+
+| Gruppo | Cosa controlla |
+|---|---|
+| Pagina | Tabella, cargo escluso, Seasonal, charter, begins/resumes/ends, date, voli sospesi |
+| Riassunto | Normale, stagionale, annunciata, rotte finite, charter che non contano |
+| Stati | Come Wikipedia e omaxim si combinano: attiva e stagionale insieme, annunciata, rotte mai viste |
+| Solo OurAirports + Wikipedia | Il file senza omaxim: valido, stati giusti, frequenze vuote e mai zero |
+| Senza Wikipedia | Si conserva ciò che si sapeva; gli annunci scaduti non restano |
+| Richieste | Percorso completo, rinvii, errori di rete, cache della giornata |
+
 ## Sito: `sito.test.mjs`
 
 Serve Node: `node --test "tests/*.test.mjs"`. Prova `sito/logica.js`, senza browser:

@@ -7,7 +7,8 @@ Ogni punto ha un numero fisso. Peso: P piccolo, M medio, G grande.
 | N. | Data | Area | Tipo | Stato | Peso | Descrizione |
 |---|---|---|---|---|---|---|
 | 1 | 2026-11-01 | Dati | Verifica | Aperto, tocca a Davide | P | Controllare le rotte di Torino nell'allegato del report sul PC di casa. Non blocca la 0.1.0. |
-| 8 | 2026-11-01 | Scanner e sito | Funzione | Aperto | G | **0.6.0** Stagionali: Wikipedia + storico nello scanner, stato `annunciata`, linee tratteggiate, prova del file con OurAirports + Wikipedia. |
+| 15 | 2026-11-01 | Dati | Miglioria | Aperto | P | Rotte normali su Wikipedia da aeroporti che omaxim non vede mai (circa 340 nell'ultima prova): oggi sono escluse, perché senza conferma possono essere vecchie. Si perdono alcune rotte vere di aeroporti piccoli. |
+| 16 | 2026-11-01 | Dati | Miglioria | Aperto | P | Filtro "voli sospesi" di Wikipedia: scarta anche pagine con sospensioni parziali (LED, MSQ, DME, LGG...), che perdono solo le stagionali da Wikipedia. Restano alcune stagionali ucraine (11) da pagine che non lo dichiarano. |
 | 14 | 2026-11-01 | Sito | Verifica | Aperto | P | Rifiniture dopo la prova su un telefono vero: finora solo simulazione in Chrome. |
 | 10 | 2026-11-01 | Dati | Miglioria | Aperto | P | Completare a mano i nomi delle compagnie senza nome. Nel file attuale: ATV, B0, DCT, FNA, GPX, HBR, TOM. |
 | 13 | 2026-11-01 | Sito | Miglioria | Aperto | P | Allungare l'elenco dei nomi italiani in `sito/logica.js`: oggi copre le città principali, le altre restano come nei dati. |
@@ -16,6 +17,7 @@ Ogni punto ha un numero fisso. Peso: P piccolo, M medio, G grande.
 
 | N. | Data | Area | Tipo | Stato | Peso | Descrizione |
 |---|---|---|---|---|---|---|
+| 8 | 2026-11-01 | Scanner e sito | Funzione | Chiuso in 0.6.0 | G | Stagionali: Wikipedia + storico nello scanner, stato `annunciata`, prova del file con OurAirports + Wikipedia. |
 | 9 | 2026-11-01 | Sito | Funzione | Chiuso in 0.5.0 | M | Impostazioni, Aiuto, Informazioni con fonti e changelog. Anticipato su richiesta di Davide, insieme a barra compatta, totali e nomi degli aeroporti. |
 | 7 | 2026-11-01 | Sito | Funzione | Chiuso in 0.4.0 | M | Chiudi il giro: raggio, ritorni, riepilogo. |
 | 6 | 2026-11-01 | Sito | Funzione | Chiuso in 0.3.0 | M | Multi-tratta: catena di tappe, aggiungi e togli tappe. |

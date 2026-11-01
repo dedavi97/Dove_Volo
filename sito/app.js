@@ -2,7 +2,7 @@
 import {
   cercaAeroporti, contaPartenze, controllaDati, filtraMete, leggiChangelog, leggiImpostazioni, meteDa, nomeCitta,
   nomePaese, paesiDelleMete, puntiArco, riepilogoGiro, salvaImpostazioni, testoData, testoDurata, testoGiorni, testoKm,
-  testoMete, testoRitorni, testoTappeTolte, testoTotale, testoTratte, testoVicino, togliTappa, trovaRitorni,
+  testoMete, testoRitorni, testoStato, testoTappeTolte, testoTotale, testoTratte, testoVicino, togliTappa, trovaRitorni,
 } from "./logica.js";
 
 const L = window.L;
@@ -385,8 +385,7 @@ function rigaMeta(meta) {
   nome.append(crea("span", "meta-paese", ` · ${nomePaese(meta.aeroporto.paese)}`));
   centro.append(nome, crea("span", "meta-dettagli", testoCompagnie(meta)));
 
-  const dettagli = [testoKm(meta.km), testoDurata(meta.durata)].filter(Boolean);
-  if (meta.stato !== "attiva") dettagli.push(`vista il ${testoData(meta.vistaUltima)}`);
+  const dettagli = [testoKm(meta.km), testoDurata(meta.durata), testoStato(meta)].filter(Boolean);
   centro.append(crea("span", "meta-dettagli", dettagli.join(" · ")));
 
   const destra = crea("span", "meta-destra");
@@ -416,8 +415,7 @@ function rigaRitorno(meta, cittaPartenza) {
   nome.append(crea("span", "meta-paese", ` · ${nomePaese(meta.aeroporto.paese)}`));
   centro.append(nome, crea("span", "meta-vicino", testoVicino(meta.distanza, cittaPartenza)));
   centro.append(crea("span", "meta-dettagli", testoCompagnie(meta)));
-  const dettagli = [testoKm(meta.km), testoDurata(meta.durata)].filter(Boolean);
-  if (meta.stato !== "attiva") dettagli.push(`stagionale, vista il ${testoData(meta.vistaUltima)}`);
+  const dettagli = [testoKm(meta.km), testoDurata(meta.durata), testoStato(meta)].filter(Boolean);
   centro.append(crea("span", "meta-dettagli", dettagli.join(" · ")));
 
   const destra = crea("span", "meta-destra");
@@ -493,7 +491,7 @@ function schedaTratta({ da, a, cittaDa, meta }) {
   }
   const compagnie = crea("span", "tratta-dettagli", testoCompagnie(meta));
   if (meta.voliSett) compagnie.append(` · ${meta.voliSett} voli/sett`);
-  if (meta.stato !== "attiva") compagnie.append(crea("span", "tratta-stagionale", " · stagionale"));
+  if (testoStato(meta)) compagnie.append(crea("span", "tratta-stagionale", ` · ${testoStato(meta)}`));
   voce.append(compagnie);
   if (meta.giorni) voce.append(pallini(meta.giorni));
   return voce;
@@ -580,6 +578,7 @@ function disegnaInformazioni() {
   };
   const spiegazioni = {
     "omaxim/airline-route-data": "rotte, voli a settimana e giorni, ricavati dagli orari di flightsfrom.com",
+    Wikipedia: "rotte stagionali e annunciate, dalle pagine degli aeroporti",
     OurAirports: "nomi, coordinate e paesi degli aeroporti",
   };
   pagina.infoFonti.replaceChildren(

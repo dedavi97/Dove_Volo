@@ -7,7 +7,7 @@ import {
   cercaAeroporti, contaPartenze, controllaDati, distanzaKm, filtraMete, IMPOSTAZIONI_INIZIALI, leggiChangelog,
   leggiImpostazioni, meteDa, nomeCitta, nomePaese, normalizza, paesiDelleMete, puntiArco, riepilogoGiro,
   rottaVisibile, salvaImpostazioni, testoData, testoDurata, testoGiorni, testoKm, testoMete, testoRitorni,
-  testoTappeTolte, testoTotale, testoTratte, testoVicino, togliTappa, trovaRitorni,
+  testoStato, testoTappeTolte, testoTotale, testoTratte, testoVicino, togliTappa, trovaRitorni,
 } from "../sito/logica.js";
 
 function aeroporto(citta, paese, nome = `${citta} Airport`, lat = 45, lon = 9) {
@@ -78,6 +78,13 @@ test("ricerca: Bergamo si trova dal nome dell'aeroporto", () => {
 test("ricerca: il codice esatto batte una citta' simile", () => {
   const dati = { ...DATI, aeroporti: { MAD: aeroporto("Madrid", "ES"), XXX: aeroporto("Mad", "ES") } };
   assert.equal(cercaAeroporti(dati, "mad", {})[0].codice, "MAD");
+});
+
+test("ricerca: il nome italiano trova anche il nome inglese dell'aeroporto", () => {
+  const dati = { ...DATI, aeroporti: { TRN: aeroporto("Caselle Torinese (TO)", "IT", "Turin Airport"), ATH: aeroporto("Spata", "GR", "Athens International Airport") } };
+  assert.equal(cercaAeroporti(dati, "Torino", {})[0].codice, "TRN");
+  assert.equal(cercaAeroporti(dati, "Atene", {})[0].codice, "ATH");
+  assert.deepEqual(cercaAeroporti(dati, "Parigi", {}), []);
 });
 
 test("ricerca: vuota o senza risultati", () => {
@@ -399,6 +406,42 @@ test("dati veri: l'esempio del progetto si chiude", () => {
   const riepilogo = riepilogoGiro(dati, ["TRN", "OTP", "TBS", dentro[0].codice]);
   assert.ok(riepilogo.tratte.every((t) => t.meta));
   assert.ok(riepilogo.kmTotali > 3000);
+});
+
+test("stato della rotta a parole", () => {
+  const dal = { dal: "2027-03-28", al: null };
+  const al = { dal: null, al: "2027-01-10" };
+  assert.equal(testoStato({ stato: "attiva", stagionaleWiki: false, periodo: null }), "");
+  assert.equal(testoStato({ stato: "attiva", stagionaleWiki: true, periodo: null }), "stagionale, vola adesso");
+  assert.equal(testoStato({ stato: "attiva", stagionaleWiki: true, periodo: al }), "stagionale, vola adesso, fino al 10 gen 2027");
+  assert.equal(testoStato({ stato: "annunciata", periodo: dal }), "annunciata, dal 28 mar 2027");
+  assert.equal(testoStato({ stato: "annunciata", periodo: null }), "annunciata");
+  assert.equal(testoStato({ stato: "stagionale", periodo: dal, vistaUltima: "2026-10-04" }), "stagionale, dal 28 mar 2027");
+  assert.equal(testoStato({ stato: "stagionale", periodo: null, vistaUltima: "2026-10-04" }), "stagionale, vista il 4 ott 2026");
+  assert.equal(testoStato({ stato: "stagionale", periodo: null, vistaUltima: null }), "stagionale");
+  assert.equal(testoStato({ stato: "stagionale", periodo: { dal: "2026-12-19", al: "2027-01-10" }, vistaUltima: null }),
+    "stagionale, dal 19 dic 2026 al 10 gen 2027");
+});
+
+test("compagnie da Wikipedia: nome senza codice", () => {
+  const dati = { ...DATI, rotte: [rotta("TRN", "OTP", "stagionale", [{ iata: null, nome: "TUI Airways", voli_sett: null, giorni: null }],
+    { vista_ultima: null, stagionale_wiki: true })] };
+  const [meta] = meteDa(dati, "TRN");
+  assert.equal(meta.compagnie[0].nome, "TUI Airways");
+  assert.equal(meta.voliSett, null);
+  assert.equal(meta.vistaUltima, null);
+  assert.equal(meta.stagionaleWiki, true);
+});
+
+test("dati veri: tre fonti, stati validi, nessuna rotta ucraina attiva", () => {
+  const dati = JSON.parse(readFileSync(new URL("../dati/dove_volo.json", import.meta.url), "utf8"));
+  assert.deepEqual(dati.fonti.map((f) => f.nome), ["omaxim/airline-route-data", "Wikipedia", "OurAirports"]);
+  assert.ok(dati.rotte.some((r) => r.stato === "annunciata"));
+  assert.ok(dati.rotte.some((r) => r.stato === "attiva" && r.stagionale_wiki));
+  const attiveUa = dati.rotte.filter((r) => r.stato === "attiva" && dati.aeroporti[r.da].paese === "UA");
+  assert.deepEqual(attiveUa, []);
+  const annunciata = meteDa(dati, "OTP").find((m) => m.codice === "TBS");
+  assert.match(testoStato(annunciata), /^annunciata, dal /);
 });
 
 test("controllo dei dati: file sbagliati rifiutati", () => {

@@ -2,6 +2,17 @@
 
 Cosa cambia a ogni versione, in parole semplici.
 
+## 0.6.0 · 1° novembre 2026
+
+Le rotte stagionali e annunciate ora vengono anche da Wikipedia.
+
+- Una rotta può risultare stagionale perché Wikipedia la segna così, oltre che perché è stata vista di recente. Se è noto, trovi anche il periodo.
+- Nuovo stato "annunciata": rotte con una data di inizio futura. Ad esempio Bucarest-Tbilisi, annunciata dal 27 giugno 2027.
+- Una rotta che vola adesso ma è stagionale lo dice: "stagionale, vola adesso".
+- Dove i dati coprono solo una parte della settimana, Wikipedia evita di far passare per stagionali delle rotte attive.
+- Se la fonte dei voli si ferma, il sito può vivere con i soli aeroporti e Wikipedia, mostrando solo le compagnie.
+- Non vengono mostrate come attive le rotte di aeroporti con voli sospesi, come quelli ucraini.
+
 ## 0.5.0 · 1° novembre 2026
 
 Più ordine, e nuove schede.

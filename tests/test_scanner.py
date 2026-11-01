@@ -388,7 +388,7 @@ class TestScaricatore(unittest.TestCase):
             def storico(self, avvisi):
                 return FILE_OTTOBRE
 
-        dati, avvisi = principale.prepara(Finto(), None, OGGI)
+        dati, avvisi = principale.prepara(Finto(), None, OGGI, senza_wikipedia=True)
         valida(dati)
         self.assertIn("omaxim non disponibile", avvisi)
         self.assertTrue(dati["rotte"])
@@ -405,7 +405,7 @@ class TestScaricatore(unittest.TestCase):
             def storico(self, avvisi):
                 return None
 
-        _, avvisi = principale.prepara(Finto(), None, date(2026, 12, 15))
+        _, avvisi = principale.prepara(Finto(), None, date(2026, 12, 15), senza_wikipedia=True)
         self.assertTrue(any("ferma" in a for a in avvisi))
 
 
