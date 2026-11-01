@@ -1,0 +1,274 @@
+/* Un colore = un significato: i colori stanno solo qui. */
+:root {
+  --sfondo: #0E1116;
+  --superficie: #161B22;
+  --terra: #1D232C;
+  --bordo: #2A313C;
+  --testo: #E6EDF3;
+  --secondario: #9AA4B2;
+  --attiva: #4FA3FF;
+  --stagionale: #F2A33A;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-codice: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --tocco: 44px;
+  --altezza-pannello: 45%;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--sfondo);
+  color: var(--testo);
+  font: 400 15px/1.4 var(--font);
+}
+
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--testo); outline-offset: 2px; }
+
+.nascosto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Testata e ricerca */
+.testata {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) 16px 4px;
+}
+.testata h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.versione { color: var(--secondario); font: 500 12px var(--font-codice); }
+
+.ricerca { padding: 4px 16px 10px; }
+.ricerca label { display: block; margin-bottom: 4px; color: var(--secondario); font-size: 12px; font-weight: 500; }
+.ricerca-campo { position: relative; }
+.ricerca input {
+  width: 100%;
+  height: var(--tocco);
+  padding: 0 12px;
+  border: 1px solid var(--bordo);
+  border-radius: 10px;
+  background: var(--superficie);
+  font-size: 16px; /* sotto i 16px iOS ingrandisce la pagina */
+}
+.ricerca input::placeholder { color: var(--secondario); }
+
+.suggerimenti {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: min(55dvh, 360px);
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--bordo);
+  border-radius: 10px;
+  background: var(--superficie);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+.suggerimento {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  column-gap: 8px;
+  min-height: var(--tocco);
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.suggerimento:hover, .suggerimento[aria-selected="true"] { background: var(--bordo); }
+.suggerimento small { display: block; color: var(--secondario); font-size: 12px; }
+.suggerimento-vuoto { padding: 12px 8px; color: var(--secondario); }
+
+.codice { font: 600 14px var(--font-codice); }
+
+/* Mappa */
+.principale { position: relative; flex: 1; min-height: 0; }
+.mappa { position: absolute; inset: 0; isolation: isolate; background: var(--sfondo); }
+.leaflet-container { background: var(--sfondo); font-family: var(--font); }
+.leaflet-bar, .leaflet-touch .leaflet-bar { border: 1px solid var(--bordo); box-shadow: none; }
+.leaflet-bar a, .leaflet-bar a:hover, .leaflet-bar a.leaflet-disabled,
+.leaflet-touch .leaflet-bar a {
+  width: var(--tocco);
+  height: var(--tocco);
+  border-color: var(--bordo);
+  background: var(--superficie);
+  color: var(--testo);
+  line-height: var(--tocco);
+}
+.leaflet-bar a.leaflet-disabled { color: var(--bordo); }
+.leaflet-tooltip.etichetta {
+  padding: 2px 6px;
+  border: 1px solid var(--bordo);
+  border-radius: 6px;
+  background: var(--superficie);
+  box-shadow: none;
+  color: var(--testo);
+  font: 500 12px var(--font);
+}
+.leaflet-tooltip.etichetta::before { display: none; }
+
+.legenda {
+  position: absolute;
+  z-index: 5;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--bordo);
+  border-radius: 8px;
+  background: rgb(22 27 34 / 0.92);
+  color: var(--secondario);
+  font-size: 12px;
+}
+.voce-legenda { display: flex; align-items: center; gap: 8px; }
+.linea { display: block; width: 22px; height: 0; border-top: 2px solid var(--attiva); }
+.linea-stagionale { border-top: 2px dashed var(--stagionale); }
+
+/* Pannello in basso, trascinabile */
+.pannello {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  height: var(--altezza-pannello);
+  min-height: 64px;
+  border: 1px solid var(--bordo);
+  border-width: 1px 0 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--superficie);
+}
+.pannello.animato { transition: height 0.2s ease; }
+
+.maniglia {
+  flex: none;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+}
+.maniglia-segno {
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 2px;
+  background: var(--bordo);
+}
+.pannello-titolo { font-size: 16px; font-weight: 600; }
+
+.filtri { flex: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 10px; }
+.pillola {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tocco);
+  padding: 0 14px;
+  border: 1px solid var(--bordo);
+  border-radius: 22px;
+  background: none;
+  color: var(--secondario);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pillola-attive[aria-pressed="true"] { border-color: var(--attiva); color: var(--attiva); }
+.pillola-stagionali[aria-pressed="true"] { border-color: var(--stagionale); color: var(--stagionale); }
+.pillola-paese { position: relative; padding: 0; }
+.pillola-paese select {
+  max-width: 170px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--superficie);
+  color: var(--testo);
+  cursor: pointer;
+}
+
+.avviso {
+  flex: none;
+  margin: 0 16px 10px;
+  color: var(--secondario);
+  font-size: 13px;
+}
+
+.scorrimento { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.vuoto { margin: 0; padding: 12px 16px 20px; color: var(--secondario); }
+
+.lista { margin: 0; padding: 0; list-style: none; }
+.meta {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  column-gap: 8px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 16px;
+  border: 0;
+  border-top: 1px solid var(--bordo);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.meta:hover { background: rgb(255 255 255 / 0.03); }
+.meta[aria-pressed="true"] { background: var(--bordo); }
+.meta .codice { color: var(--attiva); }
+.meta.stagionale .codice { color: var(--stagionale); }
+.meta-nome { font-weight: 500; }
+.meta-paese { color: var(--secondario); font-weight: 400; }
+.meta-dettagli { display: block; margin-top: 2px; color: var(--secondario); font-size: 13px; }
+.meta-destra { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.meta-voli { font-size: 13px; font-weight: 500; white-space: nowrap; }
+
+.giorni { display: flex; gap: 3px; }
+.giorno { width: 7px; height: 7px; border-radius: 50%; background: var(--bordo); }
+.giorno.vola { background: var(--attiva); }
+
+.fonti { padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--bordo); color: var(--secondario); font-size: 12px; }
+.fonti a { color: inherit; }
+
+/* Schermi larghi: il pannello diventa una colonna a sinistra */
+@media (min-width: 900px) {
+  .principale { display: block; }
+  .mappa { left: 400px; }
+  .legenda { left: 410px; }
+  .pannello {
+    top: 0;
+    right: auto;
+    width: 400px;
+    height: auto !important;
+    border-width: 1px 1px 0 0;
+    border-radius: 0;
+  }
+  .maniglia { cursor: default; touch-action: auto; }
+  .maniglia-segno { display: none; }
+  .ricerca { max-width: 400px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pannello.animato { transition: none; }
+}

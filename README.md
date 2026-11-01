@@ -2,11 +2,15 @@
 
 Un sito per costruire viaggi in più tappe con **voli diretti in Europa**: parti da A, voli a B, poi a C, poi torni ad A o a un aeroporto vicino. È il fratello di [Dove_Arrivo](https://github.com/dedavi97/Dove_Arrivo), che fa lo stesso con i treni regionali italiani.
 
-**Stato:** versione 0.1.0, in costruzione. Il programma che raccoglie i dati c'è, il sito non ancora. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
+**Stato:** versione 0.2.0, in costruzione. Il sito mostra le mete dirette da qualsiasi aeroporto; il giro in più tappe arriva con le prossime versioni. Vedi [STATUS_REPORT.md](STATUS_REPORT.md).
 
-## Come funzionerà
+## Come funziona
 
 Un programma Python sul PC raccoglie i dati in un unico file JSON. Il sito è statico: legge quel file, senza server e senza account.
+
+## Aprire il sito sul PC
+
+Serve Python 3, senza installare altro. Avvia `Apri_Sito.bat`: il sito si apre nel browser. Il doppio clic su `index.html` non basta, perché i browser non gli lasciano leggere i dati.
 
 ## Fonti dei dati
 
@@ -14,7 +18,8 @@ Un programma Python sul PC raccoglie i dati in un unico file JSON. Il sito è st
 |---|---|---|
 | Rotte, voli a settimana, giorni | File giornalieri di [omaxim/airline-route-data](https://github.com/omaxim/airline-route-data), ricavati da flightsfrom.com | Nessuna licenza indicata |
 | Aeroporti | [OurAirports](https://ourairports.com/data/) | Pubblico dominio |
-| Rotte stagionali e annunciate | Pagine degli aeroporti su [Wikipedia](https://en.wikipedia.org/) | CC BY-SA |
+| Sfondo della mappa | [Natural Earth](https://www.naturalearthdata.com/), disegnato con [Leaflet](https://leafletjs.com/) | Pubblico dominio; Leaflet BSD-2 |
+| Rotte stagionali e annunciate (dalla 0.5.0) | Pagine degli aeroporti su [Wikipedia](https://en.wikipedia.org/) | CC BY-SA |
 
 Dove_Volo è un progetto personale, aperto e gratuito. Scarica solo file pubblici e usa l'API ufficiale di Wikipedia.
 
@@ -22,7 +27,7 @@ Dove_Volo è un progetto personale, aperto e gratuito. Scarica solo file pubblic
 
 Serve Python 3, senza installare altro. Avvia `Aggiorna_Dati.bat`: scarica i dati, mostra cosa cambia e chiede "Pubblico? S/N". Se rispondi `S` pubblica solo il file `dati/dove_volo.json`; con qualsiasi altra risposta non cambia nulla.
 
-Per i test automatici avvia `Esegui_Test.bat`.
+Per i test automatici avvia `Esegui_Test.bat`. I test del sito richiedono Node; senza Node vengono saltati e te lo dice.
 
 ## Provare il test delle fonti
 

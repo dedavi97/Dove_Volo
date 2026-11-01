@@ -2,6 +2,18 @@
 
 Cosa cambia a ogni versione, in parole semplici.
 
+## 0.2.0 · 1° novembre 2026
+
+Prima versione del sito: si vede la mappa.
+
+- Scegli la partenza scrivendo una città o un codice, anche in italiano (Torino, Londra), o toccando un punto sulla mappa.
+- La mappa mostra le mete dirette: linee blu per le rotte attive, arancioni tratteggiate per le stagionali.
+- La lista mostra per ogni meta compagnie, voli a settimana, giorni, distanza e durata.
+- Filtri per rotte attive, stagionali e paese.
+- Da telefono il pannello si trascina; da computer diventa una colonna a sinistra.
+- Lo sfondo della mappa è salvato nel sito e non dipende da servizi esterni.
+- `Apri_Sito.bat` apre il sito sul PC.
+
 ## 0.1.0 · 1° novembre 2026
 
 Prima versione: il programma che raccoglie i dati. Il sito non c'è ancora.

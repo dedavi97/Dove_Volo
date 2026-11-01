@@ -1,8 +1,10 @@
 # Test · Dove_Volo
 
-Per eseguirli avvia `Esegui_Test.bat`, oppure `python -m unittest discover -s tests -t .`. Serve solo Python, e nessun test usa la rete.
+Per eseguirli tutti avvia `Esegui_Test.bat`. Nessun test usa la rete.
 
-`test_scanner.py` controlla lo scanner:
+## Scanner: `test_scanner.py`
+
+Serve solo Python: `python -m unittest discover -s tests -t .`
 
 | Gruppo | Cosa controlla |
 |---|---|
@@ -14,5 +16,19 @@ Per eseguirli avvia `Esegui_Test.bat`, oppure `python -m unittest discover -s te
 | Formato | Contenuto, scrittura e rilettura, file non valido rifiutato |
 | Differenze | Rotte nuove, sparite, tornate e cambiate, avviso per un calo forte |
 | Pubblica | Con un vero git e un finto GitHub: esce solo il file dati, e si blocca se pubblicherebbe altro |
+
+## Sito: `sito.test.mjs`
+
+Serve Node: `node --test "tests/*.test.mjs"`. Prova `sito/logica.js`, senza browser:
+
+- ricerca in italiano e in inglese, per codice e per nome dell'aeroporto;
+- mete, somma dei voli e unione dei giorni;
+- rotte nascoste invisibili, frequenze vuote e mai zero;
+- filtri, testi, linee curve e file dati sbagliato;
+- lettura del vero `dati/dove_volo.json`.
+
+## Cosa i test automatici non coprono
+
+Mappa, tocchi e pannello si controllano in un browser vero. Per la 0.2.0 è stato fatto una tantum con Chrome a schermo telefono e computer, con uno script non incluso nel repo. Vale la pena ripeterlo a ogni versione del sito, guardando anche le schermate.
 
 Il test delle fonti in `tools/test_fonti/` è uno strumento della Tappa 1, non un test automatico.

@@ -38,7 +38,14 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 
 | Percorso | Cosa contiene |
 |---|---|
-| `VERSIONE` | L'unico punto in cui è scritta la versione |
+| `VERSIONE` | L'unico punto in cui è scritta la versione: la leggono scanner e sito |
+| `index.html` | La pagina del sito |
+| `sito/logica.js` | Ricerca, mete, filtri, testi e nomi italiani, senza mappa né pagina: è la parte testata |
+| `sito/app.js` | Mappa, lista, ricerca, pannello |
+| `sito/stile.css` | Stile: i colori stanno solo qui, come variabili |
+| `sito/europa.json` | Sfondo della mappa, creato da `tools/prepara_mappa.py` |
+| `sito/vendor/leaflet/` | Leaflet 1.9.4, salvato nel sito con la sua licenza |
+| `tools/sito_locale.py` | Il server per provare il sito, usato da `Apri_Sito.bat` |
 | `dati/dove_volo.json` | Il file dati, creato alla prima pubblicazione. Il lato Python lo legge e scrive solo da `scanner/dati_file.py` |
 | `scanner/fonti.py` | Download e cache |
 | `scanner/area.py` | Aeroporti dell'area, eliporti, alias `MLH` |
@@ -52,12 +59,12 @@ Sito per costruire viaggi multi-tratta con voli diretti in Europa. Esempio: scel
 | `tools/test_fonti/dati_scaricati/` | File scaricati (156 MB), ignorati da git, riscaricabili |
 | `tests/` | Test del progetto, vedi `tests/README.md` |
 
-Il sito non esiste ancora.
-
 ## Comandi
 
+- Aprire il sito: `Apri_Sito.bat`.
+- Sfondo della mappa: `tools\Prepara_Mappa.bat`, serve di rado.
 - Aggiornare i dati: `Aggiorna_Dati.bat`. Opzioni: `--prova FILE` scrive in FILE senza toccare git, `--senza-omaxim` produce un file senza frequenze.
-- Test automatici: `Esegui_Test.bat`. Scanner e test usano solo la libreria standard di Python.
+- Test automatici: `Esegui_Test.bat`. Scanner e test Python usano solo la libreria standard; i test del sito richiedono Node e vengono saltati se manca.
 - Test delle fonti: `tools\test_fonti\Test_Fonti.bat`. Aggiungi `--aggiorna` per riscaricare tutto. Usa solo la libreria standard di Python.
 - Per la parte a parole del report si cambia `note_report.md`, non `docs/REPORT_FONTI.md`, che viene riscritto a ogni esecuzione. Senza `note_report.md` (PC di lavoro) lo script scrive solo le tabelle.
 
@@ -164,6 +171,8 @@ Tre momenti nella stessa pagina:
 2. **Tappe successive:** in alto la catena a pillole (TRN > OTP > "scegli tappa 3") e "Ricomincia"; mappa con il giro in bianco e gli archi dall'ultima tappa; stessa lista.
 3. **Chiudi il giro:** cursore "Ritorno entro X km da [partenza]" (0-400, passo 10) con cerchio verde sulla mappa; lista dei ritorni nel raggio con distanza dalla partenza; card riepilogo con ogni tratta, compagnia e giorni. Deve essere possibile togliere una tappa.
 
+Differenze rispetto a questo disegno nella 0.2.0: il pulsante "+" e la catena arrivano con la 0.3.0, e per ora toccare una meta la evidenzia soltanto. Le rotte stagionali sono già tratteggiate perché i dati le hanno già; Wikipedia arriva con la 0.5.0. Sopra i 900 px di larghezza il pannello diventa una colonna a sinistra.
+
 Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazioni (versione, changelog in parole semplici, fonti e licenze, data dei dati). Stati vuoti che spiegano il perché: "Da qui nessun volo diretto nell'area", "Nessun ritorno entro 150 km: prova ad allargare il raggio".
 
 ## Trappole
@@ -177,4 +186,10 @@ Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazio
 - **Senza omaxim** le rotte conservano lo stato precedente finché non superano i 12 mesi: non sappiamo se volano, quindi non le segniamo come sparite.
 - **Il push di `Aggiorna_Dati.bat`** spinge tutto il ramo: per questo lo scanner si ferma prima di iniziare se ci sono commit non pubblicati o se GitHub è più avanti.
 - **Durate sporche:** nella prima prova 4 rotte su 17.520 hanno una durata assurda rispetto ai km (es. MRV>SUI, 219 km e 1435 minuti). Vengono dalla fonte e non sono corrette.
+- **Sfondo mappa:** CARTO ora chiede una chiave e stampa "API KEY REQUIRED" sulle tessere. Per questo lo sfondo è Natural Earth salvato nel sito.
+- **`maxBounds` di Leaflet:** se i limiti sono più piccoli di ciò che si vede allo zoom minimo, Leaflet ricentra la mappa e rovina l'inquadratura, soprattutto da telefono. `LIMITI_MAPPA` deve restare larga.
+- **Un solo canvas:** confini, archi e punti usano lo stesso `disegno`. Così i confini restano sotto e non coprono i punti.
+- **Provare i tocchi con Chrome via CDP:** `Input.synthesizeTapGesture` non genera il clic, nemmeno su un link. Si usa `Input.dispatchTouchEvent`, con `touchStart` e `touchEnd`.
+- **Nomi nei dati:** `citta` è in inglese. La traduzione è in `NOMI_ITALIANI` di `sito/logica.js`, con chiave il nome esatto nei dati (es. `Basel, Switzerland/Mulhouse`).
+- **`dati/dove_volo.json` nel repo:** il primo l'ho creato con `--prova` e committato a parte. Dalla volta dopo lo aggiorna `Aggiorna_Dati.bat`.
 - **Cronologia git:** un file già committato resta nella cronologia anche se lo cancelli dopo. Prima di ogni commit controlla che i file solo locali non ci siano.

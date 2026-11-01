@@ -2,17 +2,21 @@
 
 Aggiornato il 1° novembre 2026.
 
-**Versione:** 0.1.0. Lo scanner c'è, il sito non ancora.
+**Versione:** 0.2.0. Il sito si apre e mostra le mete dirette da qualsiasi aeroporto. Non si può ancora costruire un giro in più tappe.
 
 | Tappa | Stato |
 |---|---|
 | 1 · Test delle fonti | Fatta |
 | 2 · Setup del repo | Fatta |
 | 0.1.0 · Scanner | Fatta |
-| 0.2.0 · Sito base | Da fare, prossima |
+| 0.2.0 · Sito base | Fatta |
+| 0.3.0 · Multi-tratta | Da fare, prossima |
 
-**Ultima prova con i dati veri:** 603 aeroporti, di cui 423 con la settimana completa, e 17.520 rotte: 11.262 attive e 6.258 stagionali. Il file pesa 4,1 MB, circa 0,27 MB compressi.
+**Dati attuali:** 603 aeroporti, di cui 423 con la settimana completa, e 17.520 rotte: 11.262 attive e 6.258 stagionali. Il file pesa 4,1 MB, circa 0,27 MB compressi.
 
-**Cosa serve da Davide:** controllare le rotte di Torino (BACKLOG #1), che non blocca nulla.
+**Cosa serve da Davide:**
+- provare il sito con `Apri_Sito.bat`;
+- dare l'ok per pubblicare e attivare GitHub Pages;
+- controllare le rotte di Torino (BACKLOG #1), che non blocca nulla.
 
-**Rischio principale:** i dati di omaxim possono fermarsi all'improvviso. Lo scanner regge già questo caso; il sito dovrà fare lo stesso.
+**Rischio principale:** i dati di omaxim possono fermarsi all'improvviso. Scanner e sito reggono già il caso senza frequenze.
