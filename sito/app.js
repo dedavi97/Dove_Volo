@@ -27,6 +27,7 @@ const COLORI = {
 const pagina = {
   versione: document.getElementById("versione"),
   campo: document.getElementById("partenza"),
+  togli: document.getElementById("togli-partenza"),
   suggerimenti: document.getElementById("suggerimenti"),
   pannello: document.getElementById("pannello"),
   maniglia: document.getElementById("maniglia"),
@@ -285,9 +286,39 @@ function scegliPartenza(codice) {
   stato.filtri.paese = "";
   pagina.campo.value = `${codice} · ${nomeCitta(aeroporto)}`;
   chiudiSuggerimenti();
+  aggiornaTogli();
   disegnaFiltroPaese();
   disegnaLista();
   disegnaRotte(true);
+  pagina.lista.parentElement.scrollTop = 0;
+}
+
+function aggiornaTogli() {
+  pagina.togli.hidden = !stato.partenza && !pagina.campo.value;
+}
+
+function mostraInvito() {
+  pagina.titolo.textContent = "Scegli un aeroporto di partenza";
+  pagina.filtri.hidden = true;
+  pagina.avviso.hidden = true;
+  pagina.lista.replaceChildren();
+  mostraVuoto("Scrivi una città o un codice qui sopra, oppure tocca un punto sulla mappa.");
+}
+
+// Torna all'inizio: nessuna partenza, tutti gli aeroporti sulla mappa, filtri azzerati.
+function togliPartenza() {
+  stato.partenza = null;
+  stato.mete = [];
+  stato.selezionata = null;
+  stato.filtri = { attive: true, stagionali: true, paese: "" };
+  pagina.filtroAttive.setAttribute("aria-pressed", "true");
+  pagina.filtroStagionali.setAttribute("aria-pressed", "true");
+  pagina.campo.value = "";
+  chiudiSuggerimenti();
+  aggiornaTogli();
+  mostraInvito();
+  disegnaTuttiGliAeroporti();
+  mappa.setView(CENTRO_EUROPA, 4);
   pagina.lista.parentElement.scrollTop = 0;
 }
 
@@ -361,7 +392,14 @@ function disegnaSuggerimenti() {
   }
 }
 
+pagina.togli.addEventListener("click", (evento) => {
+  togliPartenza();
+  // Da tastiera il pulsante sparisce: il fuoco passa al campo. Col dito no, aprirebbe la tastiera.
+  if (evento.detail === 0) pagina.campo.focus();
+});
+
 pagina.campo.addEventListener("input", () => {
+  aggiornaTogli();
   if (!stato.dati) return;
   if (!pagina.campo.value.trim()) {
     chiudiSuggerimenti();
@@ -397,6 +435,7 @@ pagina.campo.addEventListener("blur", () => {
   if (stato.partenza) {
     pagina.campo.value = `${stato.partenza} · ${nomeCitta(stato.dati.aeroporti[stato.partenza])}`;
   }
+  aggiornaTogli();
 });
 
 // ---------------------------------------------------------------- pannello trascinabile
@@ -497,8 +536,7 @@ async function avvia() {
   }
 
   stato.partenze = contaPartenze(stato.dati);
-  pagina.titolo.textContent = "Scegli un aeroporto di partenza";
-  mostraVuoto("Scrivi una città o un codice qui sopra, oppure tocca un punto sulla mappa.");
+  mostraInvito();
   disegnaFonti();
   disegnaTuttiGliAeroporti();
 }

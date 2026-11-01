@@ -58,13 +58,29 @@ button, input, select { font: inherit; color: inherit; }
 .ricerca input {
   width: 100%;
   height: var(--tocco);
-  padding: 0 12px;
+  padding: 0 46px 0 12px;
   border: 1px solid var(--bordo);
   border-radius: 10px;
   background: var(--superficie);
   font-size: 16px; /* sotto i 16px iOS ingrandisce la pagina */
 }
 .ricerca input::placeholder { color: var(--secondario); }
+.ricerca input::-webkit-search-cancel-button { display: none; }
+.togli-partenza {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--tocco);
+  height: var(--tocco);
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--secondario);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.togli-partenza:hover { color: var(--testo); }
 
 .suggerimenti {
   position: absolute;

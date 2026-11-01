@@ -2,6 +2,10 @@
 
 Cosa cambia a ogni versione, in parole semplici.
 
+## 0.2.1 · 1° novembre 2026
+
+- Una "✕" nel campo Partenza toglie l'aeroporto scelto e riporta la mappa all'inizio. Prima non c'era modo di tornare indietro.
+
 ## 0.2.0 · 1° novembre 2026
 
 Prima versione del sito: si vede la mappa.

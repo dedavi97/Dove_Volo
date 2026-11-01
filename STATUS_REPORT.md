@@ -2,7 +2,7 @@
 
 Aggiornato il 1° novembre 2026.
 
-**Versione:** 0.2.0. Il sito si apre e mostra le mete dirette da qualsiasi aeroporto. Non si può ancora costruire un giro in più tappe.
+**Versione:** 0.2.1. Il sito si apre e mostra le mete dirette da qualsiasi aeroporto. Non si può ancora costruire un giro in più tappe.
 
 | Tappa | Stato |
 |---|---|
