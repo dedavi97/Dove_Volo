@@ -2,6 +2,16 @@
 
 Cosa cambia a ogni versione, in parole semplici.
 
+## 0.3.0 · 1° novembre 2026
+
+Ora si costruisce il giro.
+
+- Il pulsante "+" di una meta la aggiunge come tappa, e lo stesso fa un tocco sul suo punto in mappa. Poi compaiono le mete dirette da lì.
+- In alto c'è la catena delle tappe, con una "×" su ognuna e il pulsante "Ricomincia". Sulla mappa il giro è bianco e spesso.
+- Se togli una tappa e tra le due vicine non c'è un volo diretto, il giro si taglia da lì in poi e il sito lo scrive.
+- Si possono trovare per nome Bergamo, Treviso, Charleroi, Beauvais e Weeze, che ora si chiamano così anche nelle liste. Prima la ricerca di "Bergamo" non trovava nulla.
+- Da telefono la partenza non finisce più sotto i pulsanti della mappa: lì si ingrandisce con due dita.
+
 ## 0.2.1 · 1° novembre 2026
 
 - Una "✕" nel campo Partenza toglie l'aeroporto scelto e riporta la mappa all'inizio. Prima non c'era modo di tornare indietro.

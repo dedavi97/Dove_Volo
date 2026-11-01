@@ -5,7 +5,8 @@ import { test } from "node:test";
 
 import {
   cercaAeroporti, contaPartenze, controllaDati, filtraMete, meteDa, nomeCitta, nomePaese, normalizza,
-  paesiDelleMete, puntiArco, testoData, testoDurata, testoGiorni, testoKm, testoMete,
+  paesiDelleMete, puntiArco, rottaVisibile, testoData, testoDurata, testoGiorni, testoKm, testoMete,
+  testoTappeTolte, togliTappa,
 } from "../sito/logica.js";
 
 function aeroporto(citta, paese, nome = `${citta} Airport`, lat = 45, lon = 9) {
@@ -168,6 +169,71 @@ test("arco: parte e arriva nei punti giusti e curva", () => {
   assert.notEqual(punti[5][0], (45 + 44) / 2);
 });
 
+const VOLO = [{ iata: "FR", voli_sett: 1, giorni: "1000000" }];
+const GIRO = {
+  ...DATI,
+  rotte: [
+    rotta("TRN", "OTP", "attiva", VOLO), rotta("OTP", "TRN", "attiva", VOLO),
+    rotta("OTP", "MAD", "attiva", VOLO), rotta("MAD", "KEF", "stagionale", VOLO),
+    rotta("TRN", "MAD", "attiva", VOLO), rotta("TRN", "KEF", "nascosta", VOLO),
+  ],
+};
+
+test("rotta visibile: attive e stagionali si', nascoste e inesistenti no", () => {
+  assert.ok(rottaVisibile(GIRO, "TRN", "OTP"));
+  assert.ok(rottaVisibile(GIRO, "MAD", "KEF"));
+  assert.ok(!rottaVisibile(GIRO, "TRN", "KEF"));
+  assert.ok(!rottaVisibile(GIRO, "KEF", "TRN"));
+});
+
+test("togliere l'ultima tappa", () => {
+  const esito = togliTappa(GIRO, ["TRN", "OTP", "MAD"], 2);
+  assert.deepEqual(esito.tappe, ["TRN", "OTP"]);
+  assert.deepEqual(esito.tolte, []);
+  assert.equal(testoTappeTolte(esito), "");
+});
+
+test("togliere una tappa in mezzo, se il volo diretto c'e'", () => {
+  const esito = togliTappa(GIRO, ["TRN", "OTP", "MAD"], 1);
+  assert.deepEqual(esito.tappe, ["TRN", "MAD"]);
+  assert.deepEqual(esito.tolte, []);
+});
+
+test("togliere una tappa in mezzo, senza volo diretto: il giro si taglia e lo dice", () => {
+  const esito = togliTappa(GIRO, ["TRN", "OTP", "MAD", "KEF"], 2);
+  assert.deepEqual(esito.tappe, ["TRN", "OTP"]);
+  assert.deepEqual(esito.tolte, ["KEF"]);
+  assert.equal(testoTappeTolte(esito), "Ho tolto anche KEF: da OTP a KEF non c'è un volo diretto.");
+});
+
+test("una rotta nascosta non tiene insieme il giro", () => {
+  const esito = togliTappa(GIRO, ["TRN", "MAD", "KEF"], 1);
+  assert.deepEqual(esito.tappe, ["TRN"]);
+  assert.deepEqual(esito.tolte, ["KEF"]);
+});
+
+test("togliere la partenza: la tappa dopo diventa la partenza", () => {
+  const esito = togliTappa(GIRO, ["TRN", "OTP", "MAD"], 0);
+  assert.deepEqual(esito.tappe, ["OTP", "MAD"]);
+  assert.deepEqual(esito.tolte, []);
+});
+
+test("A > B > A senza B: resta una A sola, senza allarmi", () => {
+  const esito = togliTappa(GIRO, ["TRN", "OTP", "TRN"], 1);
+  assert.deepEqual(esito.tappe, ["TRN"]);
+  assert.deepEqual(esito.tolte, []);
+});
+
+test("togliere l'unica tappa lascia il giro vuoto", () => {
+  assert.deepEqual(togliTappa(GIRO, ["TRN"], 0).tappe, []);
+});
+
+test("il giro originale non viene toccato", () => {
+  const tappe = ["TRN", "OTP", "MAD"];
+  togliTappa(GIRO, tappe, 1);
+  assert.deepEqual(tappe, ["TRN", "OTP", "MAD"]);
+});
+
 test("controllo dei dati: file sbagliati rifiutati", () => {
   assert.equal(controllaDati(DATI), DATI);
   assert.throws(() => controllaDati(null), /Dove_Volo/);
@@ -181,4 +247,30 @@ test("il vero file dati si legge e Torino ha mete", () => {
   assert.equal(cercaAeroporti(dati, "Torino", partenze)[0].codice, "TRN");
   assert.ok(meteDa(dati, "TRN").length > 20);
   assert.ok(!dati.aeroporti.JCU, "gli elicotteri sono fuori");
+});
+
+test("dati veri: si trovano con le parole che usa una persona", () => {
+  const dati = JSON.parse(readFileSync(new URL("../dati/dove_volo.json", import.meta.url), "utf8"));
+  const partenze = contaPartenze(dati);
+  const primo = (testo) => cercaAeroporti(dati, testo, partenze)[0]?.codice;
+  const tutti = (testo) => codici(cercaAeroporti(dati, testo, partenze));
+
+  for (const [testo, atteso] of [
+    ["Bergamo", "BGY"], ["Treviso", "TSF"], ["Charleroi", "CRL"], ["Beauvais", "BVA"], ["Weeze", "NRN"],
+    ["Malpensa", "MXP"], ["Linate", "LIN"], ["Fiumicino", "FCO"], ["Ciampino", "CIA"],
+    ["Stansted", "STN"], ["Gatwick", "LGW"], ["Bucarest", "OTP"], ["Tbilisi", "TBS"], ["Kutaisi", "KUT"],
+    ["Barcellona", "BCN"], ["Atene", "ATH"], ["Keflavik", "KEF"], ["Torino", "TRN"],
+  ]) {
+    assert.equal(primo(testo), atteso, testo);
+  }
+  for (const codice of ["MXP", "BGY", "LIN"]) assert.ok(tutti("Milano").includes(codice), `Milano: ${codice}`);
+  for (const codice of ["VCE", "TSF"]) assert.ok(tutti("Venezia").includes(codice), `Venezia: ${codice}`);
+  for (const codice of ["LHR", "STN", "LGW"]) assert.ok(tutti("Londra").includes(codice), `Londra: ${codice}`);
+});
+
+test("nome proprio dell'aeroporto: Bergamo resta Bergamo anche nella lista", () => {
+  const dati = JSON.parse(readFileSync(new URL("../dati/dove_volo.json", import.meta.url), "utf8"));
+  const meta = meteDa(dati, "OTP").find((m) => m.codice === "BGY");
+  assert.equal(meta.citta, "Bergamo");
+  assert.equal(nomeCitta(dati.aeroporti.MXP, "MXP"), "Milano");
 });

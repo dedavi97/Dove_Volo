@@ -24,6 +24,10 @@ const NOMI_ITALIANI = {
   "Zakinthos": "Zante", "Zurich": "Zurigo",
 };
 
+// Aeroporti che i dati mettono sotto una citta' grande, ma che tutti chiamano col loro nome.
+// Cercando la citta' grande si trovano lo stesso.
+const NOMI_PROPRI = { BGY: "Bergamo", TSF: "Treviso", CRL: "Charleroi", BVA: "Beauvais", NRN: "Weeze" };
+
 const GIORNI_ESTESI = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
 
 export function normalizza(testo) {
@@ -34,8 +38,8 @@ export function normalizza(testo) {
     .trim();
 }
 
-export function nomeCitta(aeroporto) {
-  return NOMI_ITALIANI[aeroporto.citta] || aeroporto.citta || aeroporto.nome;
+export function nomeCitta(aeroporto, codice) {
+  return NOMI_PROPRI[codice] || NOMI_ITALIANI[aeroporto.citta] || aeroporto.citta || aeroporto.nome;
 }
 
 export function controllaDati(dati) {
@@ -60,7 +64,7 @@ export function contaPartenze(dati) {
 
 function punteggioRicerca(richiesta, codice, aeroporto) {
   if (normalizza(codice) === richiesta) return 0;
-  const citta = [normalizza(nomeCitta(aeroporto)), normalizza(aeroporto.citta)];
+  const citta = [nomeCitta(aeroporto, codice), NOMI_ITALIANI[aeroporto.citta], aeroporto.citta].map(normalizza);
   if (citta.some((c) => c.startsWith(richiesta))) return 1;
   if (normalizza(codice).startsWith(richiesta)) return 2;
   if (citta.some((c) => c.includes(` ${richiesta}`))) return 3;
@@ -113,7 +117,7 @@ export function meteDa(dati, partenza) {
     mete.push({
       codice: rotta.a,
       aeroporto,
-      citta: nomeCitta(aeroporto),
+      citta: nomeCitta(aeroporto, rotta.a),
       stato: rotta.stato,
       km: rotta.km,
       durata: rotta.durata_min,
@@ -127,6 +131,31 @@ export function meteDa(dati, partenza) {
     (a.stato === "attiva" ? 0 : 1) - (b.stato === "attiva" ? 0 : 1)
     || (b.voliSett || 0) - (a.voliSett || 0)
     || a.citta.localeCompare(b.citta, "it"));
+}
+
+export function rottaVisibile(dati, da, a) {
+  return dati.rotte.some((r) => r.da === da && r.a === a && visibile(r));
+}
+
+// Toglie una tappa dal giro. Il giro deve restare fatto solo di voli diretti: se dopo il taglio
+// due tappe vicine non hanno un volo diretto, da li' in poi le tappe vengono tolte e segnalate.
+export function togliTappa(dati, tappe, indice) {
+  const rimaste = tappe.filter((_, i) => i !== indice);
+  const giro = [];
+  for (let i = 0; i < rimaste.length; i++) {
+    const precedente = giro[giro.length - 1];
+    if (rimaste[i] === precedente) continue; // A > B > A senza B: resta una A sola
+    if (precedente && !rottaVisibile(dati, precedente, rimaste[i])) {
+      return { tappe: giro, tolte: rimaste.slice(i), da: precedente, a: rimaste[i] };
+    }
+    giro.push(rimaste[i]);
+  }
+  return { tappe: giro, tolte: [], da: null, a: null };
+}
+
+export function testoTappeTolte({ tolte, da, a }) {
+  if (!tolte.length) return "";
+  return `Ho tolto anche ${tolte.join(", ")}: da ${da} a ${a} non c'è un volo diretto.`;
 }
 
 export function filtraMete(mete, filtri) {

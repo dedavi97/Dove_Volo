@@ -1,7 +1,7 @@
-// La pagina: legge i dati, disegna mappa e lista, risponde ai tocchi.
+// La pagina: legge i dati, disegna mappa, giro e lista, risponde ai tocchi.
 import {
   cercaAeroporti, contaPartenze, controllaDati, filtraMete, meteDa, nomeCitta, nomePaese, paesiDelleMete,
-  puntiArco, testoData, testoDurata, testoGiorni, testoKm, testoMete,
+  puntiArco, testoData, testoDurata, testoGiorni, testoKm, testoMete, testoTappeTolte, togliTappa,
 } from "./logica.js";
 
 const L = window.L;
@@ -18,7 +18,7 @@ const COLORI = {
   attiva: colore("--attiva"),
   stagionale: colore("--stagionale"),
   punto: colore("--secondario"),
-  partenza: colore("--testo"),
+  giro: colore("--testo"),
   sfondo: colore("--sfondo"),
   terra: colore("--terra"),
   confine: colore("--bordo"),
@@ -29,6 +29,11 @@ const pagina = {
   campo: document.getElementById("partenza"),
   togli: document.getElementById("togli-partenza"),
   suggerimenti: document.getElementById("suggerimenti"),
+  giro: document.getElementById("giro"),
+  catena: document.getElementById("catena"),
+  ricomincia: document.getElementById("ricomincia"),
+  messaggioGiro: document.getElementById("messaggio-giro"),
+  legendaGiro: document.getElementById("legenda-giro"),
   pannello: document.getElementById("pannello"),
   maniglia: document.getElementById("maniglia"),
   titolo: document.getElementById("titolo"),
@@ -45,13 +50,20 @@ const pagina = {
 const stato = {
   dati: null,
   partenze: {},
-  partenza: null,
+  tappe: [], // il giro: la prima e' la partenza, le mete si cercano dall'ultima
   mete: [],
   selezionata: null,
   filtri: { attive: true, stagionali: true, paese: "" },
   trovati: [],
   evidenziato: -1,
 };
+
+const partenza = () => stato.tappe[0] || null;
+const ultimaTappa = () => stato.tappe[stato.tappe.length - 1] || null;
+
+function testoAeroporto(codice) {
+  return `${codice} · ${nomeCitta(stato.dati.aeroporti[codice], codice)}`;
+}
 
 // ---------------------------------------------------------------- mappa
 
@@ -84,20 +96,6 @@ fetch(FILE_MAPPA)
 
 const livelloArchi = L.layerGroup().addTo(mappa);
 const livelloPunti = L.layerGroup().addTo(mappa);
-let etichetta = null;
-
-function chiudiEtichetta() {
-  if (etichetta) etichetta.remove();
-  etichetta = null;
-}
-
-function mostraEtichetta(aeroporto, testo) {
-  chiudiEtichetta();
-  etichetta = L.tooltip({ permanent: true, direction: "top", offset: [0, -6], className: "etichetta" })
-    .setLatLng([aeroporto.lat, aeroporto.lon])
-    .setContent(testo)
-    .addTo(mappa);
-}
 
 function puntoCliccabile(aeroporto, opzioni, azione) {
   const punto = L.circleMarker([aeroporto.lat, aeroporto.lon], { renderer: disegno, ...opzioni });
@@ -105,26 +103,25 @@ function puntoCliccabile(aeroporto, opzioni, azione) {
   return punto;
 }
 
+function etichettaFissa(aeroporto, testo) {
+  return L.tooltip({ permanent: true, direction: "auto", offset: [6, 0], className: "etichetta" })
+    .setLatLng([aeroporto.lat, aeroporto.lon])
+    .setContent(testo);
+}
+
 function disegnaTuttiGliAeroporti() {
   livelloArchi.clearLayers();
   livelloPunti.clearLayers();
-  chiudiEtichetta();
   for (const [codice, aeroporto] of Object.entries(stato.dati.aeroporti)) {
     if (!stato.partenze[codice]) continue;
     puntoCliccabile(aeroporto, {
       radius: 3, stroke: false, fillColor: COLORI.punto, fillOpacity: 0.8,
-    }, () => scegliPartenza(codice)).bindTooltip(`${codice} · ${nomeCitta(aeroporto)}`, { className: "etichetta" })
+    }, () => iniziaGiro(codice)).bindTooltip(testoAeroporto(codice), { className: "etichetta" })
       .addTo(livelloPunti);
   }
 }
 
-function disegnaRotte(adatta) {
-  livelloArchi.clearLayers();
-  livelloPunti.clearLayers();
-  chiudiEtichetta();
-  const origine = stato.dati.aeroporti[stato.partenza];
-  const visibili = filtraMete(stato.mete, stato.filtri);
-
+function disegnaMete(origine, visibili) {
   for (const meta of visibili) {
     const scelta = meta.codice === stato.selezionata;
     const stagionale = meta.stato !== "attiva";
@@ -141,26 +138,63 @@ function disegnaRotte(adatta) {
       stroke: false,
       fillColor: stagionale ? COLORI.stagionale : COLORI.attiva,
       fillOpacity: 1,
-    }, () => selezionaMeta(meta.codice, true))
+    }, () => aggiungiTappa(meta.codice))
       .bindTooltip(`${meta.codice} · ${meta.citta}`, { className: "etichetta" })
       .addTo(livelloPunti);
   }
-  L.circleMarker([origine.lat, origine.lon], {
-    renderer: disegno, interactive: false, radius: 7, color: COLORI.sfondo, weight: 2,
-    fillColor: COLORI.partenza, fillOpacity: 1,
-  }).addTo(livelloPunti);
+}
+
+// Il giro va disegnato per ultimo: bianco e spesso, sopra agli archi delle mete.
+function disegnaGiro() {
+  const aeroporti = stato.tappe.map((codice) => stato.dati.aeroporti[codice]);
+  for (let i = 1; i < aeroporti.length; i++) {
+    L.polyline(puntiArco(aeroporti[i - 1], aeroporti[i]), {
+      renderer: disegno, interactive: false, color: COLORI.giro, weight: 3, opacity: 1,
+    }).addTo(livelloArchi);
+  }
+  const visti = new Set();
+  stato.tappe.forEach((codice, i) => {
+    const ultima = i === stato.tappe.length - 1;
+    L.circleMarker([aeroporti[i].lat, aeroporti[i].lon], {
+      renderer: disegno, interactive: false, radius: ultima ? 7 : 5, color: COLORI.sfondo, weight: 2,
+      fillColor: COLORI.giro, fillOpacity: 1,
+    }).addTo(livelloPunti);
+    if (!visti.has(codice) && stato.tappe.length > 1) {
+      etichettaFissa(aeroporti[i], codice).addTo(livelloPunti);
+    }
+    visti.add(codice);
+  });
+}
+
+// Lo spazio da lasciare libero intorno alle rotte: legenda e pulsanti stanno sopra alla mappa.
+function marginiMappa() {
+  const dito = window.matchMedia("(pointer: coarse)").matches;
+  return {
+    paddingTopLeft: [28, 56],
+    paddingBottomRight: [dito ? 28 : 68, spazioOccupatoDalPannello() + 24],
+    maxZoom: 7,
+  };
+}
+
+function disegnaRotte(adatta) {
+  livelloArchi.clearLayers();
+  livelloPunti.clearLayers();
+  const origine = stato.dati.aeroporti[ultimaTappa()];
+  const visibili = filtraMete(stato.mete, stato.filtri);
+
+  disegnaMete(origine, visibili);
+  disegnaGiro();
 
   const scelta = visibili.find((m) => m.codice === stato.selezionata);
-  if (scelta) mostraEtichetta(scelta.aeroporto, `${scelta.codice} · ${scelta.citta}`);
+  if (scelta) etichettaFissa(scelta.aeroporto, `${scelta.codice} · ${scelta.citta}`).addTo(livelloPunti);
 
   if (adatta) {
-    const punti = [[origine.lat, origine.lon], ...visibili.map((m) => [m.aeroporto.lat, m.aeroporto.lon])];
-    if (punti.length > 1) {
-      mappa.fitBounds(L.latLngBounds(punti), {
-        paddingTopLeft: [24, 24],
-        paddingBottomRight: [24, spazioOccupatoDalPannello() + 24],
-        maxZoom: 7,
-      });
+    const punti = [
+      ...stato.tappe.map((codice) => stato.dati.aeroporti[codice]),
+      ...visibili.map((m) => m.aeroporto),
+    ].map((a) => [a.lat, a.lon]);
+    if (new Set(punti.map(String)).size > 1) {
+      mappa.fitBounds(L.latLngBounds(punti), marginiMappa());
     } else {
       mappa.setView(punti[0], 6);
     }
@@ -171,7 +205,7 @@ function spazioOccupatoDalPannello() {
   return schermoLargo() ? 0 : pagina.pannello.offsetHeight;
 }
 
-// ---------------------------------------------------------------- lista
+// ---------------------------------------------------------------- catena del giro
 
 function crea(tag, classe, testo) {
   const elemento = document.createElement(tag);
@@ -179,6 +213,39 @@ function crea(tag, classe, testo) {
   if (testo !== undefined) elemento.textContent = testo;
   return elemento;
 }
+
+// La catena e i suoi messaggi cambiano l'altezza della mappa: Leaflet va avvisato prima di inquadrare.
+function aggiornaMisureMappa() {
+  mappa.invalidateSize({ pan: false });
+}
+
+function disegnaCatena() {
+  pagina.giro.hidden = !stato.tappe.length;
+  pagina.legendaGiro.hidden = stato.tappe.length < 2;
+  const voci = stato.tappe.map((codice, i) => {
+    const voce = crea("li");
+    const tappa = crea("span", "tappa");
+    tappa.title = testoAeroporto(codice);
+    const togli = crea("button", "tappa-togli", "×");
+    togli.type = "button";
+    togli.setAttribute("aria-label", `Togli ${testoAeroporto(codice)} dal giro`);
+    togli.addEventListener("click", () => rimuoviTappa(i));
+    tappa.append(crea("span", "codice", codice), togli);
+    voce.append(tappa);
+    return voce;
+  });
+  const prossima = crea("li");
+  prossima.append(crea("span", "tappa-prossima", `scegli tappa ${stato.tappe.length + 1}`));
+  pagina.catena.replaceChildren(...voci, prossima);
+  pagina.catena.scrollLeft = pagina.catena.scrollWidth;
+}
+
+function mostraMessaggioGiro(testo) {
+  pagina.messaggioGiro.textContent = testo;
+  pagina.messaggioGiro.hidden = !testo;
+}
+
+// ---------------------------------------------------------------- lista
 
 function pallini(giorni) {
   const gruppo = crea("span", "giorni");
@@ -199,7 +266,7 @@ function rigaMeta(meta) {
   riga.type = "button";
   riga.dataset.codice = meta.codice;
   riga.setAttribute("aria-pressed", String(meta.codice === stato.selezionata));
-  riga.addEventListener("click", () => selezionaMeta(meta.codice, false));
+  riga.addEventListener("click", () => selezionaMeta(meta.codice));
 
   const centro = crea("span");
   const nome = crea("span", "meta-nome", meta.citta);
@@ -213,10 +280,15 @@ function rigaMeta(meta) {
   const destra = crea("span", "meta-destra");
   if (meta.voliSett) destra.append(crea("span", "meta-voli", `${meta.voliSett} voli/sett`));
   if (meta.giorni) destra.append(pallini(meta.giorni));
-
   riga.append(crea("span", "codice", meta.codice), centro, destra);
-  const voce = crea("li");
-  voce.append(riga);
+
+  const aggiungi = crea("button", "aggiungi", "+");
+  aggiungi.type = "button";
+  aggiungi.setAttribute("aria-label", `Aggiungi ${meta.citta} come tappa ${stato.tappe.length + 1}`);
+  aggiungi.addEventListener("click", () => aggiungiTappa(meta.codice));
+
+  const voce = crea("li", "riga-meta");
+  voce.append(riga, aggiungi);
   return voce;
 }
 
@@ -228,7 +300,7 @@ function mostraVuoto(testo) {
 function disegnaLista() {
   const visibili = filtraMete(stato.mete, stato.filtri);
   const attive = stato.mete.filter((m) => m.stato === "attiva").length;
-  pagina.titolo.textContent = testoMete(visibili.length);
+  pagina.titolo.textContent = `${testoMete(visibili.length)} da ${ultimaTappa()}`;
   pagina.filtroAttive.textContent = `Attive ${attive}`;
   pagina.filtroStagionali.textContent = `Stagionali ${stato.mete.length - attive}`;
   pagina.lista.replaceChildren(...visibili.map(rigaMeta));
@@ -242,7 +314,7 @@ function disegnaLista() {
     mostraVuoto("");
   }
 
-  const origine = stato.dati.aeroporti[stato.partenza];
+  const origine = stato.dati.aeroporti[ultimaTappa()];
   const parziale = !origine.settimana_completa && stato.mete.some((m) => m.voliSett);
   pagina.avviso.hidden = !parziale;
   pagina.avviso.textContent = parziale
@@ -278,23 +350,48 @@ function disegnaFonti() {
 
 // ---------------------------------------------------------------- azioni
 
-function scegliPartenza(codice) {
-  const aeroporto = stato.dati.aeroporti[codice];
-  stato.partenza = codice;
-  stato.mete = meteDa(stato.dati, codice);
+// Ridisegna tutto dopo un cambio del giro: le mete sono sempre quelle dell'ultima tappa.
+function aggiornaGiro() {
+  stato.mete = meteDa(stato.dati, ultimaTappa());
   stato.selezionata = null;
   stato.filtri.paese = "";
-  pagina.campo.value = `${codice} · ${nomeCitta(aeroporto)}`;
+  pagina.campo.value = testoAeroporto(partenza());
   chiudiSuggerimenti();
   aggiornaTogli();
+  disegnaCatena();
   disegnaFiltroPaese();
   disegnaLista();
+  aggiornaMisureMappa();
   disegnaRotte(true);
   pagina.lista.parentElement.scrollTop = 0;
 }
 
+// Una nuova partenza dal campo di ricerca inizia un giro nuovo.
+function iniziaGiro(codice) {
+  stato.tappe = [codice];
+  mostraMessaggioGiro("");
+  aggiornaGiro();
+}
+
+function aggiungiTappa(codice) {
+  stato.tappe = [...stato.tappe, codice];
+  mostraMessaggioGiro("");
+  aggiornaGiro();
+}
+
+function rimuoviTappa(indice) {
+  const esito = togliTappa(stato.dati, stato.tappe, indice);
+  if (!esito.tappe.length) {
+    ricomincia();
+    return;
+  }
+  stato.tappe = esito.tappe;
+  mostraMessaggioGiro(testoTappeTolte(esito));
+  aggiornaGiro();
+}
+
 function aggiornaTogli() {
-  pagina.togli.hidden = !stato.partenza && !pagina.campo.value;
+  pagina.togli.hidden = !partenza() && !pagina.campo.value;
 }
 
 function mostraInvito() {
@@ -305,30 +402,30 @@ function mostraInvito() {
   mostraVuoto("Scrivi una città o un codice qui sopra, oppure tocca un punto sulla mappa.");
 }
 
-// Torna all'inizio: nessuna partenza, tutti gli aeroporti sulla mappa, filtri azzerati.
-function togliPartenza() {
-  stato.partenza = null;
+// Torna all'inizio: nessun giro, tutti gli aeroporti sulla mappa, filtri azzerati.
+function ricomincia() {
+  stato.tappe = [];
   stato.mete = [];
   stato.selezionata = null;
   stato.filtri = { attive: true, stagionali: true, paese: "" };
   pagina.filtroAttive.setAttribute("aria-pressed", "true");
   pagina.filtroStagionali.setAttribute("aria-pressed", "true");
   pagina.campo.value = "";
+  mostraMessaggioGiro("");
   chiudiSuggerimenti();
   aggiornaTogli();
+  disegnaCatena();
   mostraInvito();
   disegnaTuttiGliAeroporti();
+  aggiornaMisureMappa();
   mappa.setView(CENTRO_EUROPA, 4);
   pagina.lista.parentElement.scrollTop = 0;
 }
 
-function selezionaMeta(codice, dallaMappa) {
+function selezionaMeta(codice) {
   stato.selezionata = stato.selezionata === codice ? null : codice;
   disegnaLista();
   disegnaRotte(false);
-  if (dallaMappa && stato.selezionata) {
-    pagina.lista.querySelector(`[data-codice="${codice}"]`)?.scrollIntoView({ block: "nearest" });
-  }
 }
 
 function aggiornaFiltri() {
@@ -350,6 +447,7 @@ pagina.filtroPaese.addEventListener("change", () => {
   stato.filtri.paese = pagina.filtroPaese.value;
   aggiornaFiltri();
 });
+pagina.ricomincia.addEventListener("click", ricomincia);
 
 // ---------------------------------------------------------------- ricerca
 
@@ -368,13 +466,13 @@ function disegnaSuggerimenti() {
     voce.id = `suggerimento-${i}`;
     voce.setAttribute("role", "option");
     voce.setAttribute("aria-selected", String(i === stato.evidenziato));
-    const testo = crea("span", null, nomeCitta(aeroporto));
+    const testo = crea("span", null, nomeCitta(aeroporto, codice));
     testo.append(crea("small", null, `${aeroporto.nome} · ${nomePaese(aeroporto.paese)}`));
     voce.append(crea("span", "codice", codice), testo);
     // pointerdown arriva prima che il campo perda il fuoco e chiuda l'elenco
     voce.addEventListener("pointerdown", (evento) => {
       evento.preventDefault();
-      scegliPartenza(codice);
+      iniziaGiro(codice);
     });
     return voce;
   });
@@ -393,7 +491,7 @@ function disegnaSuggerimenti() {
 }
 
 pagina.togli.addEventListener("click", (evento) => {
-  togliPartenza();
+  ricomincia();
   // Da tastiera il pulsante sparisce: il fuoco passa al campo. Col dito no, aprirebbe la tastiera.
   if (evento.detail === 0) pagina.campo.focus();
 });
@@ -425,16 +523,14 @@ pagina.campo.addEventListener("keydown", (evento) => {
     disegnaSuggerimenti();
   } else if (evento.key === "Enter") {
     evento.preventDefault();
-    scegliPartenza(stato.trovati[Math.max(stato.evidenziato, 0)].codice);
+    iniziaGiro(stato.trovati[Math.max(stato.evidenziato, 0)].codice);
     pagina.campo.blur();
   }
 });
 
 pagina.campo.addEventListener("blur", () => {
   chiudiSuggerimenti();
-  if (stato.partenza) {
-    pagina.campo.value = `${stato.partenza} · ${nomeCitta(stato.dati.aeroporti[stato.partenza])}`;
-  }
+  if (partenza()) pagina.campo.value = testoAeroporto(partenza());
   aggiornaTogli();
 });
 
@@ -506,7 +602,7 @@ window.addEventListener("resize", () => {
   if (!schermoLargo()) pagina.pannello.style.height = `${altezzaFermata(fermata)}px`;
   mappa.invalidateSize();
   // Passando da telefono a colonna cambia lo spazio per la mappa: si rifa' l'inquadratura.
-  if (schermoLargo() !== eraLargo && stato.partenza) disegnaRotte(true);
+  if (schermoLargo() !== eraLargo && partenza()) disegnaRotte(true);
   eraLargo = schermoLargo();
 });
 

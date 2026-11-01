@@ -171,7 +171,14 @@ Tre momenti nella stessa pagina:
 2. **Tappe successive:** in alto la catena a pillole (TRN > OTP > "scegli tappa 3") e "Ricomincia"; mappa con il giro in bianco e gli archi dall'ultima tappa; stessa lista.
 3. **Chiudi il giro:** cursore "Ritorno entro X km da [partenza]" (0-400, passo 10) con cerchio verde sulla mappa; lista dei ritorni nel raggio con distanza dalla partenza; card riepilogo con ogni tratta, compagnia e giorni. Deve essere possibile togliere una tappa.
 
-Differenze rispetto a questo disegno nella 0.2.0: il pulsante "+" e la catena arrivano con la 0.3.0, e per ora toccare una meta la evidenzia soltanto. Le rotte stagionali sono già tratteggiate perché i dati le hanno già; Wikipedia arriva con la 0.5.0. Sopra i 900 px di larghezza il pannello diventa una colonna a sinistra.
+Come è stato realizzato, oltre il disegno:
+- Le rotte stagionali sono già tratteggiate perché i dati le hanno già; Wikipedia arriva con la 0.5.0.
+- Sopra i 900 px di larghezza il pannello diventa una colonna a sinistra.
+- Toccare la riga di una meta la evidenzia; aggiungerla come tappa si fa col "+" o toccando il punto in mappa.
+- Il giro è `stato.tappe` in `sito/app.js`: la prima è la partenza, le mete si cercano dall'ultima. Si può ripassare da un aeroporto già visitato, purché non sia l'ultima tappa.
+- **Togliere una tappa:** resta un giro di soli voli diretti. Se le due tappe vicine non hanno un volo diretto, da lì in poi si tagliano e il sito lo scrive (`togliTappa` in `sito/logica.js`). Togliendo la partenza, la tappa dopo diventa partenza.
+- Scegliere un aeroporto dal campo Partenza inizia un giro nuovo. Ricomincia e la ✕ del campo azzerano tutto, senza chiedere conferma.
+- Con il dito niente pulsanti + e − sulla mappa: si ingrandisce con due dita.
 
 Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazioni (versione, changelog in parole semplici, fonti e licenze, data dei dati). Stati vuoti che spiegano il perché: "Da qui nessun volo diretto nell'area", "Nessun ritorno entro 150 km: prova ad allargare il raggio".
 
@@ -190,6 +197,7 @@ Sempre raggiungibili: Impostazioni (raggio predefinito, ecc.), Aiuto, Informazio
 - **`maxBounds` di Leaflet:** se i limiti sono più piccoli di ciò che si vede allo zoom minimo, Leaflet ricentra la mappa e rovina l'inquadratura, soprattutto da telefono. `LIMITI_MAPPA` deve restare larga.
 - **Un solo canvas:** confini, archi e punti usano lo stesso `disegno`. Così i confini restano sotto e non coprono i punti.
 - **Provare i tocchi con Chrome via CDP:** `Input.synthesizeTapGesture` non genera il clic, nemmeno su un link. Si usa `Input.dispatchTouchEvent`, con `touchStart` e `touchEnd`.
-- **Nomi nei dati:** `citta` è in inglese. La traduzione è in `NOMI_ITALIANI` di `sito/logica.js`, con chiave il nome esatto nei dati (es. `Basel, Switzerland/Mulhouse`).
+- **Altezza della mappa:** la catena e i suoi messaggi la cambiano senza che scatti `resize`. Prima di inquadrare va chiamato `aggiornaMisureMappa()`, altrimenti da telefono le tappe finiscono sotto il pannello.
+- **Nomi nei dati:** `citta` è in inglese. La traduzione è in `NOMI_ITALIANI` di `sito/logica.js`, con chiave il nome esatto nei dati (es. `Basel, Switzerland/Mulhouse`). `NOMI_PROPRI` è per gli aeroporti che i dati mettono sotto una città grande: BGY è "Milan", l'aeroporto "Il Caravaggio", e la parola Bergamo non compare mai. Le ricerche vanno provate sui dati veri, non solo su dati finti.
 - **`dati/dove_volo.json` nel repo:** il primo l'ho creato con `--prova` e committato a parte. Dalla volta dopo lo aggiorna `Aggiorna_Dati.bat`.
 - **Cronologia git:** un file già committato resta nella cronologia anche se lo cancelli dopo. Prima di ogni commit controlla che i file solo locali non ci siano.

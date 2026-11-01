@@ -30,12 +30,21 @@
     </div>
   </div>
 
+  <nav id="giro" class="giro" aria-label="Il tuo giro" hidden>
+    <div class="giro-riga">
+      <ol id="catena" class="catena"></ol>
+      <button id="ricomincia" class="ricomincia" type="button">Ricomincia</button>
+    </div>
+    <p id="messaggio-giro" class="messaggio-giro" role="status" hidden></p>
+  </nav>
+
   <main class="principale">
     <div id="mappa" class="mappa" aria-label="Mappa delle rotte"></div>
 
     <aside class="legenda" aria-label="Legenda">
       <span class="voce-legenda"><i class="linea linea-attiva"></i>Attiva</span>
       <span class="voce-legenda"><i class="linea linea-stagionale"></i>Stagionale</span>
+      <span id="legenda-giro" class="voce-legenda" hidden><i class="linea linea-giro"></i>Il tuo giro</span>
     </aside>
 
     <section id="pannello" class="pannello" aria-label="Mete dirette">

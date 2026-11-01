@@ -25,10 +25,11 @@ Serve Node: `node --test "tests/*.test.mjs"`. Prova `sito/logica.js`, senza brow
 - mete, somma dei voli e unione dei giorni;
 - rotte nascoste invisibili, frequenze vuote e mai zero;
 - filtri, testi, linee curve e file dati sbagliato;
-- lettura del vero `dati/dove_volo.json`.
+- togliere una tappa: ultima, in mezzo con e senza volo diretto, partenza, A > B > A;
+- il vero `dati/dove_volo.json`: lettura e ricerche con le parole di una persona (Bergamo, Malpensa, Londra).
 
 ## Cosa i test automatici non coprono
 
-Mappa, tocchi e pannello si controllano in un browser vero. Per la 0.2.0 è stato fatto una tantum con Chrome a schermo telefono e computer, con uno script non incluso nel repo. Vale la pena ripeterlo a ogni versione del sito, guardando anche le schermate.
+Mappa, tocchi e pannello si controllano in un browser vero. Per ogni versione del sito fin qui è stato fatto con Chrome a schermo telefono e computer, con uno script non incluso nel repo: tocchi simulati, controllo che ogni tappa resti in vista, e soprattutto le schermate da guardare. Non è stato provato su un telefono vero. Vale la pena ripeterlo a ogni versione.
 
 Il test delle fonti in `tools/test_fonti/` è uno strumento della Tappa 1, non un test automatico.
